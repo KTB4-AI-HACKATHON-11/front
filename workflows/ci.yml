@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'front/**'
+      - 'front/workflows/ci.yml'
+      - 'front/workflows/cd.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: front-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: front/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build
+        run: pnpm build
