@@ -7,6 +7,12 @@ on:
       - 'front/**'
       - 'front/.github/workflows/ci.yml'
       - 'front/.github/workflows/cd.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'front/**'
+      - 'front/.github/workflows/ci.yml'
+      - 'front/.github/workflows/cd.yml'
   workflow_dispatch:
 
 concurrency:
