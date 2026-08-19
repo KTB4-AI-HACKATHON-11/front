@@ -4,15 +4,25 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'front/**'
-      - 'front/.github/workflows/ci.yml'
-      - 'front/.github/workflows/cd.yml'
+      - '.github/workflows/**'
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'vite.config.js'
+      - 'postcss.config.mjs'
+      - 'index.html'
   push:
     branches: [main]
     paths:
-      - 'front/**'
-      - 'front/.github/workflows/ci.yml'
-      - 'front/.github/workflows/cd.yml'
+      - '.github/workflows/**'
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'vite.config.js'
+      - 'postcss.config.mjs'
+      - 'index.html'
   workflow_dispatch:
 
 concurrency:
@@ -25,9 +35,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: front
 
     steps:
       - name: Checkout
@@ -44,9 +51,15 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            front/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Restore node_modules cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-front-node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-front-node-modules-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
