@@ -113,10 +113,11 @@ jobs:
         env:
           APP_HOST: ${{ secrets.APP_HOST }}
           IMAGE_REF: ${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}
+          IMAGE_REPO: ${{ needs.build-and-push.outputs.image }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/deploy_key ubuntu@"$APP_HOST" \
-            "IMAGE_REF='$IMAGE_REF' bash -s" <<'REMOTE'
+            "IMAGE_REF='$IMAGE_REF' IMAGE_REPO='$IMAGE_REPO' bash -s" <<'REMOTE'
           set -euo pipefail
 
           docker pull "$IMAGE_REF"
@@ -130,4 +131,11 @@ jobs:
 
           sleep 3
           docker ps --filter name=frontend --filter status=running --format '{{.Names}}' | grep -qx frontend
+
+          CURRENT_IMAGE_ID="$(docker image inspect "$IMAGE_REF" --format '{{.Id}}')"
+          docker image ls "$IMAGE_REPO" --format '{{.Repository}}:{{.Tag}} {{.ID}}' | while read -r image id; do
+            if [ "$id" != "$CURRENT_IMAGE_ID" ]; then
+              docker image rm -f "$image" 2>/dev/null || true
+            fi
+          done
           REMOTE
