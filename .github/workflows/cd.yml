@@ -5,8 +5,8 @@ on:
     branches: [main]
     paths:
       - 'front/**'
-      - 'front/workflows/ci.yml'
-      - 'front/workflows/cd.yml'
+      - 'front/.github/workflows/ci.yml'
+      - 'front/.github/workflows/cd.yml'
   workflow_dispatch:
 
 concurrency:
@@ -43,12 +43,13 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
+          version: 10.13.1
           run_install: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
           cache-dependency-path: front/pnpm-lock.yaml
 
@@ -64,7 +65,7 @@ jobs:
         shell: bash
         run: |
           cat <<'EOF' > /tmp/front.Dockerfile
-          FROM node:20-alpine AS build
+          FROM node:24-alpine AS build
           WORKDIR /app
           RUN corepack enable
           COPY front/package.json front/pnpm-lock.yaml front/pnpm-workspace.yaml ./
