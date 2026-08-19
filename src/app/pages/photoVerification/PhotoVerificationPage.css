@@ -1,0 +1,75 @@
+.photo-verification-layout {
+  display: grid;
+  max-width: 990px;
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 15px;
+}
+
+.photo-camera-card { overflow: hidden; }
+.photo-camera-card__heading { display: flex; min-height: 73px; align-items: center; justify-content: space-between; gap: 15px; padding: 0 22px; border-bottom: 1px solid #eeeeF2; }
+.photo-camera-card__heading > div > span { color: #6255e7; font-size: 8px; font-weight: 700; }
+.photo-camera-card__heading h2 { margin: 2px 0 0; font-family: "Onest", sans-serif; font-size: 14px; font-weight: 700; }
+
+.camera-frame { padding: 18px; background: #1e1e25; }
+.camera-frame__scene { position: relative; overflow: hidden; aspect-ratio: 16 / 10; border-radius: 8px; background: linear-gradient(#d7d7d2 0 38%, #b5a993 38% 42%, #8b8171 42%); }
+.camera-scene__ceiling { position: absolute; top: 0; left: 15%; width: 70%; height: 34%; background: linear-gradient(108deg, transparent 0 22%, #faf7ec 23% 25%, transparent 26% 48%, #faf7ec 49% 51%, transparent 52% 74%, #faf7ec 75% 77%, transparent 78%); opacity: 0.9; }
+.camera-scene__shelf { position: absolute; bottom: 10%; display: flex; align-items: flex-end; justify-content: space-around; width: 24%; height: 48%; padding: 10px; border: 6px solid #514b43; background: #756d60; box-shadow: inset 0 0 0 2px #a79e8d; }
+.camera-scene__shelf--left { left: 5%; }
+.camera-scene__shelf--right { right: 5%; }
+.camera-scene__shelf span { width: 19%; height: 43%; border-radius: 3px 3px 0 0; background: #e7d6b0; }
+.camera-scene__shelf span:nth-child(2) { height: 67%; background: #b9ccbd; }
+.camera-scene__counter { position: absolute; bottom: 7%; left: 34%; display: flex; width: 32%; height: 28%; align-items: flex-end; justify-content: center; gap: 8%; padding-bottom: 4%; border-radius: 5px 5px 0 0; background: #4d4943; box-shadow: 0 12px 0 #292825; }
+.camera-scene__counter span { width: 15%; height: 43%; border-radius: 4px 4px 0 0; background: #d97960; }
+.camera-scene__counter span:nth-child(2) { height: 65%; background: #ece6d5; }
+.camera-scene__counter span:nth-child(3) { background: #679a8b; }
+.camera-frame__guide { position: absolute; inset: 12%; }
+.camera-frame__guide i { position: absolute; width: 34px; height: 34px; border-color: rgba(255,255,255,0.85); border-style: solid; }
+.camera-frame__guide i:nth-child(1) { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.camera-frame__guide i:nth-child(2) { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.camera-frame__guide i:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.camera-frame__guide i:nth-child(4) { right: 0; bottom: 0; border-width: 0 2px 2px 0; }
+.camera-frame--captured .camera-frame__scene::after { position: absolute; inset: 0; border: 3px solid #25a889; border-radius: 8px; background: rgba(26, 151, 120, 0.08); content: ""; }
+.camera-frame__captured-label { position: absolute; z-index: 2; top: 14px; left: 50%; padding: 5px 9px; border-radius: 999px; background: rgba(19, 107, 86, 0.85); color: white; font-size: 9px; transform: translateX(-50%); }
+.camera-controls { display: grid; width: 220px; grid-template-columns: 1fr 68px 1fr; align-items: center; gap: 18px; margin: 17px auto 8px; }
+.camera-control-button, .camera-shutter { display: flex; align-items: center; justify-content: center; margin: auto; border: 0; border-radius: 50%; cursor: pointer; }
+.camera-control-button { width: 37px; height: 37px; background: #35353e; color: #c7c7cf; }
+.camera-shutter { width: 62px; height: 62px; border: 3px solid white; background: transparent; }
+.camera-shutter > span { width: 48px; height: 48px; border-radius: 50%; background: white; }
+.camera-shutter--retake { background: #25a889; color: white; }
+.camera-frame__hint { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 0; color: #a5a5ad; font-size: 9px; }
+
+.photo-criteria { align-self: start; padding: 22px; }
+.photo-criteria__heading { display: flex; align-items: center; gap: 9px; padding-bottom: 16px; border-bottom: 1px solid #eeeeF2; }
+.photo-criteria__heading > span { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 8px; background: #e8f6f2; color: #16876f; }
+.photo-criteria__heading small { display: block; color: #aaaab4; font-size: 7px; font-weight: 700; }
+.photo-criteria__heading h2 { margin: 1px 0 0; font-family: "Onest", sans-serif; font-size: 13px; font-weight: 700; }
+.photo-criteria__description { margin: 16px 0; color: #858590; font-size: 9px; line-height: 1.55; }
+.photo-criteria__list { margin-bottom: 20px; }
+.photo-criteria__list > p { display: flex; gap: 8px; margin: 0 0 14px; color: #25a889; }
+.photo-criteria__list span { flex: 1; }
+.photo-criteria__list strong, .photo-criteria__list small { display: block; }
+.photo-criteria__list strong { color: #565661; font-size: 10px; }
+.photo-criteria__list small { margin-top: 2px; color: #9999a4; font-size: 8px; line-height: 1.4; }
+.photo-criteria .primary-button, .photo-criteria .ghost-button { width: 100%; }
+.photo-criteria .primary-button:disabled { border-color: #c8c8d0; background: #c8c8d0; cursor: not-allowed; transform: none; }
+.photo-criteria .ghost-button { min-height: 34px; margin-top: 4px; font-size: 9px; }
+
+.photo-success { display: flex; min-height: 540px; align-items: center; justify-content: center; flex-direction: column; padding: 40px; text-align: center; }
+.photo-success__icon { display: flex; width: 68px; height: 68px; align-items: center; justify-content: center; margin-bottom: 18px; border-radius: 50%; background: #e5f7f2; color: #20a384; }
+.photo-success__eyebrow { color: #20a384; font-size: 9px; font-weight: 700; }
+.photo-success h2 { margin: 6px 0 7px; font-family: "Onest", sans-serif; font-size: 24px; font-weight: 700; }
+.photo-success > p { margin: 0; color: #898994; font-size: 11px; line-height: 1.65; }
+.photo-success__score { display: flex; width: 230px; align-items: center; justify-content: space-between; margin: 25px 0 17px; padding: 13px; border: 1px solid #ddefe9; border-radius: 8px; background: #f2fbf8; }
+.photo-success__score span { color: #6f887f; font-size: 9px; }
+.photo-success__score strong { color: #16876f; font-family: "Onest", sans-serif; font-size: 16px; }
+
+@media (max-width: 850px) {
+  .photo-verification-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .camera-frame { padding: 10px; }
+  .camera-controls { margin-top: 11px; }
+  .photo-camera-card__heading { padding: 0 15px; }
+}
