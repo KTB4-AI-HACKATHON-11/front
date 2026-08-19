@@ -72,7 +72,7 @@ jobs:
         shell: bash
         run: |
           cat <<'EOF' > /tmp/front.Dockerfile
-          FROM node:24-alpine AS build
+          FROM node:24-bookworm-slim AS build
           WORKDIR /app
           RUN corepack enable
           COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
