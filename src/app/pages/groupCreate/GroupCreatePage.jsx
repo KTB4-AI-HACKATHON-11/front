@@ -31,8 +31,7 @@ export default function GroupCreatePage({ user }) {
             </div>
             <div className="group-create-field">
               <label className="field-label" htmlFor="group-description">그룹 설명</label>
-              <textarea className="text-area" id="group-description" placeholder="그룹에서 함께 진행할 업무를 간단히 설명해주세요." />
-              <div className="character-count">0 / 200</div>
+              <input className="text-input" id="group-description" placeholder="그룹에서 함께 진행할 업무를 간단히 설명해주세요." />
             </div>
 
             <div className="group-create-form-actions">

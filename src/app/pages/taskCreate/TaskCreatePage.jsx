@@ -9,7 +9,6 @@ import "./TaskCreatePage.css";
 export default function TaskCreatePage({ user }) {
   const navigate = useNavigate();
   const [verificationEnabled, setVerificationEnabled] = useState(true);
-  const [verificationMethod, setVerificationMethod] = useState("photo");
 
   const handleGenerate = (event) => {
     event.preventDefault();
@@ -44,16 +43,10 @@ export default function TaskCreatePage({ user }) {
                 <span><Sparkles size={12} /> AI가 실행 가능한 목록으로 나눠요</span>
               </div>
             </div>
-            <div className="task-create-fields-row">
-              <div><label className="field-label" htmlFor="assignee">담당자</label><select className="text-input" id="assignee" defaultValue="서연"><option>서연</option><option>도윤</option><option>하린</option></select></div>
-              <div><label className="field-label" htmlFor="due-date">마감 일시</label><input className="text-input" id="due-date" type="datetime-local" defaultValue="2026-08-19T09:30" /></div>
-            </div>
           </section>
           <VerificationPanel
             enabled={verificationEnabled}
             onEnabledChange={setVerificationEnabled}
-            method={verificationMethod}
-            onMethodChange={setVerificationMethod}
           />
         </div>
 
@@ -62,7 +55,6 @@ export default function TaskCreatePage({ user }) {
           <div className="task-create-submit page-card">
             <div><span>생성 후 상태</span><strong>대기</strong></div>
             <button className="primary-button" type="submit"><Sparkles size={15} /> AI로 태스크 생성 <ArrowRight size={15} /></button>
-            <button className="ghost-button" type="button" onClick={() => navigate("/groups/group-1")}>임시 저장 후 나가기</button>
           </div>
         </div>
       </form>

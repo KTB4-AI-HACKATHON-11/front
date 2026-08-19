@@ -1,11 +1,6 @@
-import { Camera, MessageSquareText, ShieldCheck, ShieldOff } from "lucide-react";
+import { Camera, ShieldCheck, ShieldOff } from "lucide-react";
 
-const methods = [
-  { value: "photo", label: "사진 촬영", description: "현장 사진으로 확인", icon: Camera },
-  { value: "text", label: "텍스트 입력", description: "답변 내용으로 확인", icon: MessageSquareText },
-];
-
-export default function VerificationPanel({ enabled, onEnabledChange, method, onMethodChange }) {
+export default function VerificationPanel({ enabled, onEnabledChange }) {
   return (
     <section className="verification-panel page-card">
       <div className="verification-panel__top">
@@ -21,17 +16,9 @@ export default function VerificationPanel({ enabled, onEnabledChange, method, on
 
       {enabled ? (
         <>
-          <div className="verification-methods">
-            {methods.map(({ value, label, description, icon: Icon }) => (
-              <button
-                type="button"
-                className={`verification-method ${method === value ? "verification-method--active" : ""}`}
-                key={value}
-                onClick={() => onMethodChange(value)}
-              >
-                <Icon size={17} /><span><strong>{label}</strong><small>{description}</small></span>
-              </button>
-            ))}
+          <div className="verification-photo-method">
+            <span><Camera size={17} /></span>
+            <div><strong>사진 촬영</strong><small>현장 사진으로 완료 여부를 확인합니다.</small></div>
           </div>
           <div className="verification-question">
             <label className="field-label" htmlFor="verification-rule">검증 기준<span className="field-label__required">*</span></label>
