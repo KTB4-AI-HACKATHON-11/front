@@ -5,7 +5,7 @@ import { apiMutation, cachedApiRequest, CACHE_TTL_MS } from "./client";
  * 그룹 생성
  * POST /api/v1/groups
  * @param {{ managerId: number, name: string, description: string }} params
- * @returns {Promise<{ groupId: number, name: string, description: string }>}
+ * @returns {Promise<{ groupId: number, inviteCode: string, name: string, description: string }>}
  */
 export function createGroup({ managerId, name, description }) {
   return apiMutation("/groups", {
@@ -17,14 +17,14 @@ export function createGroup({ managerId, name, description }) {
 /**
  * 그룹 참여
  * POST /api/v1/groups/join
- * @param {{ memberId: number, groupId: number }} params
- * @returns {Promise<{ groupId: number, name: string, description: string }>}
- * 실패 응답: 404 (존재하지 않는 그룹 ID), 409 (이미 가입한 그룹) → ApiError로 던져짐
+ * @param {{ memberId: number, inviteCode: string }} params
+ * @returns {Promise<{ groupId: number, inviteCode: string, name: string, description: string }>}
+ * 실패 응답: 404 (존재하지 않는 초대 코드), 409 (이미 가입한 그룹) → ApiError로 던져짐
  */
-export function joinGroup({ memberId, groupId }) {
+export function joinGroup({ memberId, inviteCode }) {
   return apiMutation("/groups/join", {
     method: "POST",
-    body: { memberId, groupId },
+    body: { memberId, inviteCode },
   });
 }
 
@@ -47,7 +47,7 @@ export function getMyGroups({ memberId, offset = 0, limit = 20 }) {
  * GET /api/v1/groups/{groupId}?memberId={memberId}
  * memberId로 요청 회원이 그룹에 속해 있는지 함께 검증합니다.
  * @param {{ groupId: string|number, memberId: number }} params
- * @returns {Promise<{ groupId: number, name: string, description: string }>}
+ * @returns {Promise<{ groupId: number, inviteCode: string, name: string, description: string }>}
  * 실패 응답: 404 (존재하지 않는 그룹 또는 멤버가 아닌 경우) → ApiError로 던져짐
  */
 export function getGroupDetail({ groupId, memberId }) {

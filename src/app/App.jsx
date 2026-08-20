@@ -14,6 +14,7 @@ import PhotoVerificationPage from "./pages/photoVerification/PhotoVerificationPa
 import { clearStoredUser, loadStoredUser, saveUser } from "./lib/authStorage";
 import { getCurrentMember } from "./api/memberApi";
 import { ApiError } from "./api/client";
+import NotificationOnboarding from "./components/NotificationOnboarding";
 
 function RequireAuth({ user, children }) {
   if (!user?.memberId) {
@@ -25,6 +26,7 @@ function RequireAuth({ user, children }) {
 
 export default function App() {
   const [user, setUser] = useState(() => loadStoredUser());
+  const [notificationOnboardingTrigger, setNotificationOnboardingTrigger] = useState(0);
 
   useEffect(() => {
     if (!user?.memberId) return;
@@ -61,6 +63,7 @@ export default function App() {
   const handleAuthenticated = (nextUser) => {
     setUser(nextUser);
     saveUser(nextUser);
+    setNotificationOnboardingTrigger((current) => current + 1);
   };
 
   return (
@@ -87,6 +90,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <NotificationOnboarding user={user} trigger={notificationOnboardingTrigger} />
     </BrowserRouter>
   );
 }

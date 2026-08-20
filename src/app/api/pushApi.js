@@ -11,6 +11,10 @@ export function supportsWebPush() {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
+export function getPushPermission() {
+  return "Notification" in window ? Notification.permission : "unsupported";
+}
+
 export async function ensurePushSubscription() {
   if (!supportsWebPush()) {
     throw new ApiError(

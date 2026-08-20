@@ -4,7 +4,7 @@ import { ApiError } from "../../../api/client";
 import { joinGroup } from "../../../api/groupApi";
 
 export default function GroupJoinModal({ memberId, onClose, onJoined }) {
-  const [groupId, setGroupId] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState("");
 
@@ -12,19 +12,19 @@ export default function GroupJoinModal({ memberId, onClose, onJoined }) {
     event.preventDefault();
     if (isJoining) return;
 
-    const normalizedId = groupId.trim();
-    if (!/^\d{6}$/.test(normalizedId)) {
-      setError("그룹 ID는 6자리 숫자로 입력해주세요.");
+    const normalizedCode = inviteCode.trim();
+    if (!/^\d{6}$/.test(normalizedCode)) {
+      setError("초대 코드는 6자리 숫자로 입력해주세요.");
       return;
     }
 
     setError("");
     setIsJoining(true);
     try {
-      const joinedGroup = await joinGroup({ memberId, groupId: Number(normalizedId) });
+      const joinedGroup = await joinGroup({ memberId, inviteCode: normalizedCode });
       onJoined(joinedGroup.groupId);
     } catch (err) {
-      // 404(존재하지 않는 그룹 ID), 409(이미 가입한 그룹) 모두 서버가 내려주는 message를 그대로 보여줍니다.
+      // 404(존재하지 않는 초대 코드), 409(이미 가입한 그룹) 모두 서버 메시지를 보여줍니다.
       setError(
         err instanceof ApiError
           ? err.message
@@ -45,21 +45,23 @@ export default function GroupJoinModal({ memberId, onClose, onJoined }) {
         <div className="group-join-modal__heading">
           <span>JOIN GROUP</span>
           <h2 id="group-join-title">그룹에 참여하기</h2>
-          <p>초대받은 그룹 ID를 입력하면 그룹에 참여할 수 있어요.</p>
+          <p>관리자에게 받은 6자리 초대 코드를 입력하면 그룹에 참여할 수 있어요.</p>
         </div>
         <form onSubmit={handleSubmit}>
-          <label className="field-label" htmlFor="join-group-id">그룹 ID</label>
+          <label className="field-label" htmlFor="join-group-code">초대 코드</label>
           <p className="group-join-modal__input-hint">6자리 숫자를 입력해주세요.</p>
           <input
             className={`text-input ${error ? "text-input--error" : ""}`}
-            id="join-group-id"
-            value={groupId}
+            id="join-group-code"
+            value={inviteCode}
             onChange={(event) => {
-              setGroupId(event.target.value.replace(/\D/g, "").slice(0, 6));
+              setInviteCode(event.target.value.replace(/\D/g, "").slice(0, 6));
               setError("");
             }}
             onBlur={() => {
-              if (groupId && groupId.length !== 6) setError("그룹 ID는 6자리 숫자로 입력해주세요.");
+              if (inviteCode && inviteCode.length !== 6) {
+                setError("초대 코드는 6자리 숫자로 입력해주세요.");
+              }
             }}
             placeholder="예: 123456"
             inputMode="numeric"
@@ -71,7 +73,7 @@ export default function GroupJoinModal({ memberId, onClose, onJoined }) {
           {error && <p className="group-join-modal__helper group-join-modal__helper--error">{error}</p>}
           <div className="group-join-modal__actions">
             <button className="ghost-button" type="button" onClick={onClose} disabled={isJoining}>취소</button>
-            <button className="primary-button" type="submit" disabled={isJoining || groupId.length !== 6}>
+            <button className="primary-button" type="submit" disabled={isJoining || inviteCode.length !== 6}>
               {isJoining ? <><LoaderCircle className="group-join-modal__loader" size={15} /> 확인 중</> : <>참여하기 <ArrowRight size={15} /></>}
             </button>
           </div>

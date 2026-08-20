@@ -1,4 +1,4 @@
-import { ChevronLeft, LayoutGrid, LogOut } from "lucide-react";
+import { Bell, ChevronLeft, LayoutGrid, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import BrandMark from "./BrandMark";
 import { clearStoredUser } from "../lib/authStorage";
@@ -142,6 +142,13 @@ export default function AppShell({ user, children, title, description, backTo, a
               </button>
             );
           })}
+          <button
+            className="app-sidebar__item app-sidebar__notification"
+            onClick={() => window.dispatchEvent(new CustomEvent("checkon:open-notification-onboarding"))}
+          >
+            <Bell size={17} />
+            <span>알림 설정</span>
+          </button>
           <button className="app-sidebar__item app-sidebar__mobile-logout" onClick={handleLogout}>
             <LogOut size={17} />
             <span>로그아웃</span>

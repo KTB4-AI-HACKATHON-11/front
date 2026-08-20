@@ -20,6 +20,7 @@ import GroupInviteModal from "./components/GroupInviteModal";
 import MemberList from "./components/MemberList";
 import ManagerReviewPanel from "./components/ManagerReviewPanel";
 import TaskCard from "./components/TaskCard";
+import GroupAgentPanel from "./components/GroupAgentPanel";
 import "./GroupDetailPage.css";
 
 export default function GroupDetailPage({ user }) {
@@ -149,9 +150,10 @@ export default function GroupDetailPage({ user }) {
     };
   }, [groupDetail?.role, groupId, user.memberId]);
 
-  const handleCopyGroupId = async () => {
+  const handleCopyInviteCode = async () => {
+    if (!groupDetail?.inviteCode) return;
     try {
-      await navigator.clipboard.writeText(groupId);
+      await navigator.clipboard.writeText(groupDetail.inviteCode);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -189,6 +191,18 @@ export default function GroupDetailPage({ user }) {
     }
   };
 
+  const handleAgentMutated = async () => {
+    const [detailResult, taskResult] = await Promise.allSettled([
+      getGroupDetail({ groupId, memberId: user.memberId }),
+      getGroupTasks({ groupId, requesterId: user.memberId }),
+    ]);
+    if (detailResult.status === "fulfilled") setGroupDetail(detailResult.value);
+    if (taskResult.status === "fulfilled") {
+      setGroupTasks((taskResult.value?.items ?? []).map(toTaskCard));
+      setTasksErrorMessage("");
+    }
+  };
+
   if (isLoading) {
     return (
       <AppShell user={user} title="그룹 정보를 불러오는 중" description="잠시만 기다려주세요." backTo="/groups">
@@ -221,9 +235,11 @@ export default function GroupDetailPage({ user }) {
       ]}
       actions={
         <div className="group-detail-actions">
-          <button className="secondary-button" onClick={() => navigate(`/groups/${groupId}/ask`)}>
-            <Sparkles size={16} /><span>AI에게 물어보기</span>
-          </button>
+          {!canManage && (
+            <button className="secondary-button" onClick={() => navigate(`/groups/${groupId}/ask`)}>
+              <Sparkles size={16} /><span>AI에게 물어보기</span>
+            </button>
+          )}
           {canManage && (
             <button className="secondary-button" onClick={() => navigate(`/groups/${groupId}/store-info`)}>
               <BookOpen size={16} /><span>매장 정보 관리</span>
@@ -237,6 +253,15 @@ export default function GroupDetailPage({ user }) {
         </div>
       }
     >
+      {canManage && (
+        <GroupAgentPanel
+          key={groupId}
+          groupId={groupId}
+          groupName={groupDetail.name}
+          managerId={user.memberId}
+          onMutated={handleAgentMutated}
+        />
+      )}
       <section className="group-detail-summary page-card">
         <div className="group-detail-summary__identity">
           <span className="group-detail-summary__icon">{groupDetail.name.slice(0, 1)}</span>
@@ -249,8 +274,13 @@ export default function GroupDetailPage({ user }) {
                 </span>
               )}
               <span className={`group-id ${copied ? "group-id--copied" : ""}`}>
-                <span>{copied ? "복사됨" : groupId}</span>
-                <button type="button" onClick={handleCopyGroupId} title="그룹 ID 복사" aria-label={`${groupId} 복사`}>
+                <span>{copied ? "복사됨" : `초대 코드 ${groupDetail.inviteCode}`}</span>
+                <button
+                  type="button"
+                  onClick={handleCopyInviteCode}
+                  title="초대 코드 복사"
+                  aria-label={`${groupDetail.inviteCode} 초대 코드 복사`}
+                >
                   {copied ? <Check size={12} strokeWidth={3} /> : <Copy size={12} />}
                 </button>
               </span>
@@ -320,7 +350,10 @@ export default function GroupDetailPage({ user }) {
         />
       </div>
       {isInviteModalOpen && (
-        <GroupInviteModal groupId={groupId} onClose={() => setIsInviteModalOpen(false)} />
+        <GroupInviteModal
+          inviteCode={groupDetail.inviteCode}
+          onClose={() => setIsInviteModalOpen(false)}
+        />
       )}
     </AppShell>
   );

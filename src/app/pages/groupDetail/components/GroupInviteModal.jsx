@@ -2,7 +2,7 @@ import { Check, Copy, Link2, X } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-export default function GroupInviteModal({ groupId, onClose }) {
+export default function GroupInviteModal({ inviteCode, onClose }) {
   const [copiedTarget, setCopiedTarget] = useState(null);
 
   const handleCopy = async (text, target) => {
@@ -32,24 +32,24 @@ export default function GroupInviteModal({ groupId, onClose }) {
         <div className="group-invite-modal__heading">
           <span>INVITE GROUP</span>
           <h2 id="group-invite-title">그룹에 멤버 초대하기</h2>
-          <p>아래 그룹 ID를 공유하면, 그룹 멤버가 "그룹 참여" 화면에서 이 번호로 가입할 수 있어요.</p>
+          <p>아래 초대 코드를 공유하면, 그룹 멤버가 "그룹 참여" 화면에서 가입할 수 있어요.</p>
         </div>
 
         <div className="group-invite-modal__code">
-          <span className="group-invite-modal__code-label">그룹 ID</span>
+          <span className="group-invite-modal__code-label">초대 코드</span>
           <div className="group-invite-modal__code-value">
-            <strong>{groupId}</strong>
+            <strong>{inviteCode}</strong>
             <button
               type="button"
-              className={`group-invite-modal__code-copy ${copiedTarget === "id" ? "is-copied" : ""}`}
-              onClick={() => handleCopy(groupId, "id")}
-              title="그룹 ID 복사"
-              aria-label="그룹 ID 복사"
+              className={`group-invite-modal__code-copy ${copiedTarget === "code" ? "is-copied" : ""}`}
+              onClick={() => handleCopy(inviteCode, "code")}
+              title="초대 코드 복사"
+              aria-label="초대 코드 복사"
             >
-              {copiedTarget === "id" ? <Check size={18} strokeWidth={3} /> : <Copy size={18} />}
+              {copiedTarget === "code" ? <Check size={18} strokeWidth={3} /> : <Copy size={18} />}
             </button>
           </div>
-          {copiedTarget === "id" && <small className="group-invite-modal__code-hint">복사됐어요</small>}
+          {copiedTarget === "code" && <small className="group-invite-modal__code-hint">복사됐어요</small>}
         </div>
       </section>
     </div>
