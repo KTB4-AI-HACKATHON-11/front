@@ -109,6 +109,8 @@ export default function TaskCreatePage({ user }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
+  const [taskTitleDraft, setTaskTitleDraft] = useState("");
+  const [checklistDraft, setChecklistDraft] = useState([]); // 사용자가 직접 수정 가능한 체크리스트 편집본
   const [referencePhotos, setReferencePhotos] = useState({}); // { [sequence]: { file, previewUrl } }
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -121,7 +123,7 @@ export default function TaskCreatePage({ user }) {
   const hasValidMemberSession = Boolean(user?.memberId);
   const hasValidGroupId = Boolean(currentGroup);
   const hasManagerAccess = currentGroup?.role === "MANAGER";
-  const photoChecklistItems = generatedChecklist?.checklists.filter((item) => item.completionType === "PHOTO") ?? [];
+  const photoChecklistItems = checklistDraft.filter((item) => item.completionType === "PHOTO");
   const missingPhotoCount = photoChecklistItems.filter((item) => !referencePhotos[item.sequence]).length;
 
   useEffect(() => {
@@ -241,6 +243,18 @@ export default function TaskCreatePage({ user }) {
         ...result,
         assigneeName: workerMembers.find((member) => member.id === assigneeId)?.name ?? "",
       });
+      setTaskTitleDraft(result.title || title.trim());
+      // AI가 만든 체크리스트를 편집 가능한 상태로 복사해둡니다. 항목의 sequence는 화면/파일 매핑용
+      // 내부 식별자로만 쓰고, 실제 등록 시 sequence는 화면에 보이는 순서(1부터)로 다시 매깁니다.
+      setChecklistDraft(
+        result.checklists.map((item) => ({
+          sequence: item.sequence,
+          title: item.title,
+          instruction: item.instruction,
+          completionType: item.completionType,
+          rule: item.completionType === "PHOTO" ? (item.rule ?? "") : "",
+        }))
+      );
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.message === "그룹에 접근할 수 없습니다.") {
@@ -260,6 +274,30 @@ export default function TaskCreatePage({ user }) {
     clearReferencePhotos();
     setSaveError("");
     setGeneratedChecklist(null);
+    setTaskTitleDraft("");
+    setChecklistDraft([]);
+  };
+
+  const handleChecklistFieldChange = (sequence, field, value) => {
+    setChecklistDraft((current) =>
+      current.map((item) => (item.sequence === sequence ? { ...item, [field]: value } : item))
+    );
+    if (saveError) {
+      setSaveError("");
+    }
+  };
+
+  const handleToggleCompletionType = (sequence) => {
+    setChecklistDraft((current) =>
+      current.map((item) =>
+        item.sequence === sequence
+          ? { ...item, completionType: item.completionType === "PHOTO" ? "CHECK" : "PHOTO" }
+          : item
+      )
+    );
+    if (saveError) {
+      setSaveError("");
+    }
   };
 
   const handleSelectPhoto = (sequence, fileList) => {
@@ -294,12 +332,28 @@ export default function TaskCreatePage({ user }) {
   const handleSave = async () => {
     if (isSaving || !generatedChecklist) return;
 
+    const trimmedTaskTitle = taskTitleDraft.trim();
+    if (!trimmedTaskTitle) {
+      setSaveError("태스크 제목을 입력해주세요.");
+      return;
+    }
+
+    if (checklistDraft.some((item) => !item.title.trim() || !item.instruction.trim())) {
+      setSaveError("모든 체크리스트 항목의 제목과 내용을 입력해주세요.");
+      return;
+    }
+
+    if (photoChecklistItems.some((item) => !item.rule.trim())) {
+      setSaveError("사진 검증으로 설정한 항목에는 검증 기준을 입력해주세요.");
+      return;
+    }
+
     if (missingPhotoCount > 0) {
       setSaveError("사진 검증 항목에는 기준 사진이 반드시 필요합니다. 모든 항목에 사진을 첨부해주세요.");
       return;
     }
 
-    if (generatedChecklist.checklists.length > TASK_CHECKLIST_MAX_LENGTH) {
+    if (checklistDraft.length > TASK_CHECKLIST_MAX_LENGTH) {
       setSaveError(`체크리스트는 최대 ${TASK_CHECKLIST_MAX_LENGTH}개까지 등록할 수 있습니다. 다시 생성해 항목 수를 줄여주세요.`);
       return;
     }
@@ -308,19 +362,19 @@ export default function TaskCreatePage({ user }) {
     setIsSaving(true);
     try {
       const referencePhotoFiles = [];
-      const checklists = generatedChecklist.checklists.map((item, index) => {
+      const checklists = checklistDraft.map((item, index) => {
         const isPhoto = item.completionType === "PHOTO";
 
         return {
-          // 백엔드는 sequence를 1부터 순서대로 요구합니다. AI 생성 결과의 sequence(0-based 배열 인덱스)를
-          // 그대로 보내지 않고 실제 등록 순서(index + 1)로 다시 매깁니다.
+          // 백엔드는 sequence를 1부터 순서대로 요구합니다. 편집 중 내부적으로 쓰는 sequence(AI 생성 시
+          // 부여된 값)를 그대로 보내지 않고 실제 등록 순서(index + 1)로 다시 매깁니다.
           sequence: index + 1,
-          title: item.title,
-          instruction: item.instruction,
+          title: item.title.trim(),
+          instruction: item.instruction.trim(),
           completionType: item.completionType,
           // CHECK 항목은 rule과 기준 사진을 사용할 수 없어 null로 보냅니다. PHOTO 항목만 rule과
           // referencePhotoIndex를 채웁니다.
-          rule: isPhoto ? item.rule : null,
+          rule: isPhoto ? item.rule.trim() : null,
           referencePhotoIndex: isPhoto ? referencePhotoFiles.push(referencePhotos[item.sequence].file) - 1 : null,
         };
       });
@@ -328,7 +382,7 @@ export default function TaskCreatePage({ user }) {
       await createTask({
         groupId,
         managerId: user.memberId,
-        title: (generatedChecklist.title || title).trim(),
+        title: trimmedTaskTitle,
         message: (generatedChecklist.message || message).trim(),
         workerId: assigneeId,
         dueAt: new Date(dueAt).toISOString(),
@@ -374,7 +428,15 @@ export default function TaskCreatePage({ user }) {
         <section className="page-card task-create-result">
           <div className="form-section-heading">
             <span>AI CHECKLIST</span>
-            <h2>{generatedChecklist.title}</h2>
+            <input
+              className="task-create-result__title-input"
+              value={taskTitleDraft}
+              onChange={(event) => setTaskTitleDraft(event.target.value)}
+              placeholder={TASK_TITLE_PLACEHOLDER}
+              maxLength={TASK_TITLE_MAX_LENGTH}
+              disabled={isSaving}
+              aria-label="태스크 제목"
+            />
             {generatedChecklist.assigneeName || dueAt ? (
               <p>
                 {generatedChecklist.assigneeName ? `담당자 ${generatedChecklist.assigneeName}` : ""}
@@ -384,46 +446,81 @@ export default function TaskCreatePage({ user }) {
             ) : null}
           </div>
           <ul className="task-create-checklist">
-            {generatedChecklist.checklists.map((item, index) => (
-              <li key={item.sequence}>
-                <div className="task-create-checklist__top">
-                  {/* 등록 시 실제로 전송되는 sequence(index + 1)와 화면에 보이는 번호를 일치시킵니다. */}
-                  <strong>{index + 1}. {item.title}</strong>
-                  <span className={`task-create-checklist__type ${item.completionType === "PHOTO" ? "is-photo" : ""}`}>
-                    {item.completionType === "PHOTO" ? "사진 검증" : "체크 검증"}
-                  </span>
-                </div>
-                <p>{item.instruction}</p>
-                {/* CHECK 항목은 등록 시 rule을 사용할 수 없어(null로 전송) PHOTO 항목만 검증 기준을 보여줍니다. */}
-                {item.completionType === "PHOTO" && item.rule && <small>검증 기준: {item.rule}</small>}
-                {item.completionType === "PHOTO" && (
-                  <div className="task-create-checklist__photo">
-                    {referencePhotos[item.sequence] ? (
-                      <div className="task-create-photo-preview">
-                        <img src={referencePhotos[item.sequence].previewUrl} alt={`${item.title} 기준 사진`} />
-                        <div>
-                          <strong>{referencePhotos[item.sequence].file.name}</strong>
-                          <button type="button" onClick={() => handleRemovePhoto(item.sequence)} disabled={isSaving}>
-                            <X size={12} /> 사진 제거
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <label className={`task-create-photo-upload ${isSaving ? "is-disabled" : ""}`}>
-                        <Camera size={14} />
-                        <span>기준 사진 첨부<em>*</em></span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          disabled={isSaving}
-                          onChange={(event) => handleSelectPhoto(item.sequence, event.target.files)}
-                        />
-                      </label>
-                    )}
+            {checklistDraft.map((item, index) => {
+              const isPhoto = item.completionType === "PHOTO";
+              return (
+                <li key={item.sequence}>
+                  <div className="task-create-checklist__top">
+                    {/* 등록 시 실제로 전송되는 sequence(index + 1)와 화면에 보이는 번호를 일치시킵니다. */}
+                    <span className="task-create-checklist__index">{index + 1}.</span>
+                    <input
+                      className="task-create-checklist__title-input"
+                      value={item.title}
+                      onChange={(event) => handleChecklistFieldChange(item.sequence, "title", event.target.value)}
+                      placeholder="체크리스트 제목"
+                      disabled={isSaving}
+                      aria-label={`체크리스트 ${index + 1} 제목`}
+                    />
+                    <button
+                      type="button"
+                      className={`task-create-checklist__toggle ${isPhoto ? "is-on" : ""}`}
+                      onClick={() => handleToggleCompletionType(item.sequence)}
+                      disabled={isSaving}
+                      aria-pressed={isPhoto}
+                      title="사진 검증 사용 여부"
+                    >
+                      <span className="task-create-checklist__toggle-track"><span className="task-create-checklist__toggle-thumb" /></span>
+                      {isPhoto ? "사진 검증" : "체크 검증"}
+                    </button>
                   </div>
-                )}
-              </li>
-            ))}
+                  <textarea
+                    className="task-create-checklist__instruction-input"
+                    value={item.instruction}
+                    onChange={(event) => handleChecklistFieldChange(item.sequence, "instruction", event.target.value)}
+                    placeholder="수행 방법을 설명해주세요."
+                    disabled={isSaving}
+                    rows={2}
+                    aria-label={`체크리스트 ${index + 1} 내용`}
+                  />
+                  {isPhoto && (
+                    <>
+                      <input
+                        className="task-create-checklist__rule-input"
+                        value={item.rule}
+                        onChange={(event) => handleChecklistFieldChange(item.sequence, "rule", event.target.value)}
+                        placeholder="검증 기준을 입력해주세요. 예: 원두 호퍼가 80% 이상 채워져 있어야 함"
+                        disabled={isSaving}
+                        aria-label={`체크리스트 ${index + 1} 검증 기준`}
+                      />
+                      <div className="task-create-checklist__photo">
+                        {referencePhotos[item.sequence] ? (
+                          <div className="task-create-photo-preview">
+                            <img src={referencePhotos[item.sequence].previewUrl} alt={`${item.title} 기준 사진`} />
+                            <div>
+                              <strong>{referencePhotos[item.sequence].file.name}</strong>
+                              <button type="button" onClick={() => handleRemovePhoto(item.sequence)} disabled={isSaving}>
+                                <X size={12} /> 사진 제거
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className={`task-create-photo-upload ${isSaving ? "is-disabled" : ""}`}>
+                            <Camera size={14} />
+                            <span>기준 사진 첨부<em>*</em></span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={isSaving}
+                              onChange={(event) => handleSelectPhoto(item.sequence, event.target.files)}
+                            />
+                          </label>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           {saveError && (
