@@ -9,6 +9,9 @@
 .task-verification-form__heading > span { display: flex; align-items: center; gap: 5px; color: #6255e7; font-size: 9px; font-weight: 700; }
 .task-verification-form__heading h2 { margin: 7px 0 3px; font-family: "Onest", sans-serif; font-size: 18px; }
 .task-verification-form__heading p { margin: 0; color: #9696a1; font-size: 11px; }
+.task-verification-assignment { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 20px 28px; border-bottom: 1px solid #eeeeF2; }
+.task-verification-assignment__field .text-input { height: 40px; }
+.task-verification-assignment__field select { appearance: auto; }
 .task-verification-items { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; background: #fafafd; }
 .task-verification-item { padding: 17px; }
 .task-verification-item__top { display: flex; align-items: center; gap: 9px; }
@@ -30,6 +33,7 @@
 
 @media (max-width: 660px) {
   .task-verification-form__heading { padding: 22px 20px 18px; }
+  .task-verification-assignment { grid-template-columns: 1fr; padding: 18px 20px; }
   .task-verification-items { padding: 14px; }
   .task-verification-form__actions { padding: 0 14px 14px; }
 }
