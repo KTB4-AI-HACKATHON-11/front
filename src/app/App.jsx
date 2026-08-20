@@ -15,11 +15,6 @@ import { clearStoredUser, loadStoredUser, saveUser } from "./lib/authStorage";
 import { getCurrentMember } from "./api/memberApi";
 import { ApiError } from "./api/client";
 
-const initialUser = {
-  nickname: "민준",
-  email: "minjun@checkon.team",
-};
-
 function RequireAuth({ user, children }) {
   if (!user?.memberId) {
     return <Navigate to="/login" replace />;
@@ -29,7 +24,7 @@ function RequireAuth({ user, children }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(() => loadStoredUser() ?? initialUser);
+  const [user, setUser] = useState(() => loadStoredUser());
 
   useEffect(() => {
     if (!user?.memberId) return;
@@ -51,7 +46,7 @@ export default function App() {
         // 명확히 답한 경우에만 로컬 상태를 정리합니다.
         if (error instanceof ApiError && error.status === 401) {
           clearStoredUser();
-          setUser(initialUser);
+          setUser(null);
         }
       });
     return () => {
@@ -81,8 +76,13 @@ export default function App() {
         <Route path="/groups/:groupId/ask" element={<RequireAuth user={user}><StoreAskPage user={user} /></RequireAuth>} />
         <Route path="/groups/:groupId/tasks/new" element={<RequireAuth user={user}><TaskCreatePage user={user} /></RequireAuth>} />
         <Route path="/tasks/:taskId" element={<RequireAuth user={user}><TaskDetailPage user={user} /></RequireAuth>} />
+        <Route path="/task-runs/:runId" element={<RequireAuth user={user}><TaskDetailPage user={user} /></RequireAuth>} />
         <Route
           path="/tasks/:taskId/verify/photo/:subTaskId"
+          element={<RequireAuth user={user}><PhotoVerificationPage user={user} /></RequireAuth>}
+        />
+        <Route
+          path="/task-runs/:runId/verify/photo/:subTaskId"
           element={<RequireAuth user={user}><PhotoVerificationPage user={user} /></RequireAuth>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -33,7 +33,7 @@ export function joinGroup({ memberId, groupId }) {
  * GET /api/v1/members/{memberId}/groups
  * 회원이 가입한 그룹을 offset과 limit 기준으로 잘라 조회합니다.
  * @param {{ memberId: number, offset?: number, limit?: number }} params
- * @returns {Promise<Array<{ groupId: number, name: string, description: string }>>}
+ * @returns {Promise<Array<{ groupId: number, name: string, description: string, memberCount: number, taskCount: number, completionRate: number, role: string }>>}
  */
 export function getMyGroups({ memberId, offset = 0, limit = 20 }) {
   return cachedApiRequest(

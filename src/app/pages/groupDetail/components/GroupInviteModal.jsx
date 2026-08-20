@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 
 export default function GroupInviteModal({ groupId, onClose }) {
   const [copiedTarget, setCopiedTarget] = useState(null);
-  const inviteUrl = `${window.location.origin}/groups/${groupId}`;
 
   const handleCopy = async (text, target) => {
     try {

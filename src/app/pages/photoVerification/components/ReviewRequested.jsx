@@ -9,7 +9,7 @@ export default function ReviewRequested({ onConfirm }) {
       <p>
         AI 검증이 반복해서 실패해 매니저에게 확인을 요청했습니다.
         <br />
-        매니저가 사진을 확인한 뒤 완료 처리해드릴게요.
+        매니저가 사진을 확인한 뒤 완료 승인 또는 재촬영을 안내합니다.
       </p>
       <button className="primary-button" type="button" onClick={onConfirm}>
         확인하고 태스크로 돌아가기

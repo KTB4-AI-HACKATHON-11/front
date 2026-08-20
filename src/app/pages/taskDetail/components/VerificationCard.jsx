@@ -1,7 +1,7 @@
-import { Camera, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Camera, CheckCircle2, RotateCcw, ShieldCheck } from "lucide-react";
 import ProgressiveImage from "../../../components/ProgressiveImage";
 
-export default function VerificationCard({ subTask, onPhotoOpen }) {
+export default function VerificationCard({ subTask, onPhotoOpen, canManage, isRetrying, onRetry }) {
   return (
     <aside className="task-verification page-card">
       <div className="task-verification__heading">
@@ -28,7 +28,15 @@ export default function VerificationCard({ subTask, onPhotoOpen }) {
             <p><CheckCircle2 size={13} /> {subTask.title}</p>
           </div>
           {subTask.photo && !subTask.completed && (
-            <button className="primary-button" onClick={onPhotoOpen}><Camera size={15} /> 사진 찍어 검증하기</button>
+            subTask.assignmentStatus === "VERIFICATION_DELAYED" && canManage ? (
+              <button className="primary-button" disabled={isRetrying} onClick={onRetry}>
+                <RotateCcw size={15} /> {isRetrying ? "AI 재검증 중..." : "AI 검증 다시 시도"}
+              </button>
+            ) : subTask.assignmentStatus === "MANAGER_REVIEW_REQUESTED" ? (
+              <button className="primary-button" disabled><ShieldCheck size={15} /> 매니저 확인 대기 중</button>
+            ) : (
+              <button className="primary-button" onClick={onPhotoOpen}><Camera size={15} /> 사진 찍어 검증하기</button>
+            )
           )}
           {subTask.photo && <small className="task-verification__help">사진은 검증 목적으로만 사용됩니다.</small>}
         </>

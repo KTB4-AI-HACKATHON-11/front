@@ -7,6 +7,7 @@ export default function FailureResult({
   onRetake,
   onBack,
   onRequestReview,
+  requestingReview,
   status,
   fix,
 }) {
@@ -38,8 +39,8 @@ export default function FailureResult({
           </button>
         )}
         {canRequestReview && (
-          <button className="secondary-button" type="button" onClick={onRequestReview}>
-            <UserCheck size={15} /> 매니저에게 확인 요청하기
+          <button className="secondary-button" type="button" disabled={requestingReview} onClick={onRequestReview}>
+            <UserCheck size={15} /> {requestingReview ? "요청 중..." : "매니저에게 확인 요청하기"}
           </button>
         )}
       </div>

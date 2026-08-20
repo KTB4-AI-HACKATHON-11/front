@@ -6,11 +6,19 @@ import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getGroupDetail } from "../../api/groupApi";
 import { getGroupMembers } from "../../api/memberApi";
-import { getGroupTasks, prefetchTaskDetail } from "../../api/taskApi";
+import {
+  getGroupTasks,
+  getManagerReviews,
+  prefetchTaskDetail,
+  prefetchTaskRunDetail,
+  resolveManagerReview,
+} from "../../api/taskApi";
+import { ensurePushSubscription } from "../../api/pushApi";
 import { toDisplayMembers } from "../../lib/memberDisplay";
 import { toTaskCard } from "../../lib/taskDisplay";
 import GroupInviteModal from "./components/GroupInviteModal";
 import MemberList from "./components/MemberList";
+import ManagerReviewPanel from "./components/ManagerReviewPanel";
 import TaskCard from "./components/TaskCard";
 import "./GroupDetailPage.css";
 
@@ -29,6 +37,11 @@ export default function GroupDetailPage({ user }) {
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorType, setErrorType] = useState("group");
+  const [managerReviews, setManagerReviews] = useState([]);
+  const [isReviewsLoading, setIsReviewsLoading] = useState(false);
+  const [reviewsErrorMessage, setReviewsErrorMessage] = useState("");
+  const [resolvingReviewId, setResolvingReviewId] = useState(null);
+  const [reviewNotificationMessage, setReviewNotificationMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -107,6 +120,35 @@ export default function GroupDetailPage({ user }) {
     };
   }, [groupId, user.memberId]);
 
+  useEffect(() => {
+    if (groupDetail?.role !== "MANAGER") {
+      setManagerReviews([]);
+      return;
+    }
+    let cancelled = false;
+    setIsReviewsLoading(true);
+    setReviewsErrorMessage("");
+    getManagerReviews({ groupId, managerId: user.memberId })
+      .then((reviews) => {
+        if (!cancelled) setManagerReviews(reviews ?? []);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setReviewsErrorMessage(
+            error instanceof ApiError
+              ? error.message
+              : "매니저 확인 요청을 불러오지 못했습니다."
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsReviewsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [groupDetail?.role, groupId, user.memberId]);
+
   const handleCopyGroupId = async () => {
     try {
       await navigator.clipboard.writeText(groupId);
@@ -114,6 +156,36 @@ export default function GroupDetailPage({ user }) {
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       setCopied(false);
+    }
+  };
+
+  const handleResolveReview = async (reviewId, decision) => {
+    if (resolvingReviewId) return;
+    setResolvingReviewId(reviewId);
+    setReviewsErrorMessage("");
+    try {
+      await resolveManagerReview({ reviewId, managerId: user.memberId, decision });
+      setManagerReviews((current) => current.filter((review) => review.reviewId !== reviewId));
+      const tasks = await getGroupTasks({ groupId, requesterId: user.memberId });
+      setGroupTasks((tasks?.items ?? []).map(toTaskCard));
+    } catch (error) {
+      setReviewsErrorMessage(
+        error instanceof ApiError ? error.message : "확인 요청을 처리하지 못했습니다."
+      );
+    } finally {
+      setResolvingReviewId(null);
+    }
+  };
+
+  const handleEnableReviewNotifications = async () => {
+    setReviewNotificationMessage("");
+    try {
+      await ensurePushSubscription();
+      setReviewNotificationMessage("이 브라우저로 매니저 확인 요청 알림을 받습니다.");
+    } catch (error) {
+      setReviewNotificationMessage(
+        error instanceof ApiError ? error.message : "브라우저 알림을 켜지 못했습니다."
+      );
     }
   };
 
@@ -195,6 +267,18 @@ export default function GroupDetailPage({ user }) {
         </div>
       </section>
 
+      {canManage ? (
+        <ManagerReviewPanel
+          reviews={managerReviews}
+          isLoading={isReviewsLoading}
+          errorMessage={reviewsErrorMessage}
+          resolvingId={resolvingReviewId}
+          notificationMessage={reviewNotificationMessage}
+          onEnableNotifications={handleEnableReviewNotifications}
+          onResolve={handleResolveReview}
+        />
+      ) : null}
+
       <div className="group-detail-layout">
         <section className="task-panel page-card">
           <div className="task-panel__heading">
@@ -212,8 +296,17 @@ export default function GroupDetailPage({ user }) {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onPrefetch={() => prefetchTaskDetail({ taskId: task.id, requesterId: user.memberId })}
-                  onOpen={() => navigate(`/tasks/${task.id}`, { state: { groupId } })}
+                  onPrefetch={() =>
+                    task.runId
+                      ? prefetchTaskRunDetail({ runId: task.runId, requesterId: user.memberId })
+                      : prefetchTaskDetail({ taskId: task.taskId, requesterId: user.memberId })
+                  }
+                  onOpen={() =>
+                    navigate(
+                      task.runId ? `/task-runs/${task.runId}` : `/tasks/${task.taskId}`,
+                      { state: { groupId } }
+                    )
+                  }
                 />
               ))
             )}

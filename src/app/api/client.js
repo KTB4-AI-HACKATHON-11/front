@@ -3,8 +3,7 @@
 //   성공: { code: string, message: string, data: T }
 //   실패: { code: string, message: string, data: null } (HTTP 4xx/5xx)
 
-// export const API_BASE_URL = "http://localhost:8080/api/v1";
-const API_BASE_URL = "https://api.checkon.cloud/api/v1";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "https://api.checkon.cloud/api/v1").replace(/\/$/, "");
 export const CACHE_TTL_MS = Object.freeze({
   FAST_CHANGING: 10_000,
   STANDARD: 30_000,

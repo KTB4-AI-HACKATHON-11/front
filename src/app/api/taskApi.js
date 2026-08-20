@@ -26,8 +26,19 @@ export function getTaskDetail({ taskId, requesterId }) {
   );
 }
 
+export function getTaskRunDetail({ runId, requesterId }) {
+  return cachedApiRequest(
+    `/task-runs/${encodeURIComponent(runId)}?requesterId=${requesterId}`,
+    CACHE_TTL_MS.STANDARD
+  );
+}
+
 export function prefetchTaskDetail({ taskId, requesterId }) {
   return getTaskDetail({ taskId, requesterId }).catch(() => null);
+}
+
+export function prefetchTaskRunDetail({ runId, requesterId }) {
+  return getTaskRunDetail({ runId, requesterId }).catch(() => null);
 }
 
 /**
@@ -129,6 +140,32 @@ export async function submitPhotoAttempt({ assignmentId, workerId, photo }) {
   return apiMutation(`/assignments/${assignmentId}/photo-attempts?workerId=${encodeURIComponent(workerId)}`, {
     method: "POST",
     body: formData,
+  });
+}
+
+export function retryPhotoAttempt({ attemptId, managerId }) {
+  return apiMutation(
+    `/attempts/${attemptId}/retry?managerId=${encodeURIComponent(managerId)}`,
+    { method: "POST" }
+  );
+}
+
+export function requestManagerReview({ assignmentId, workerId }) {
+  return apiMutation(`/assignments/${assignmentId}/manager-reviews`, {
+    method: "POST",
+    body: { workerId },
+  });
+}
+
+export function getManagerReviews({ groupId, managerId, status = "PENDING" }) {
+  const params = new URLSearchParams({ managerId: String(managerId), status });
+  return apiRequest(`/groups/${groupId}/manager-reviews?${params.toString()}`);
+}
+
+export function resolveManagerReview({ reviewId, managerId, decision, message }) {
+  return apiMutation(`/manager-reviews/${reviewId}`, {
+    method: "PATCH",
+    body: { managerId, decision, message },
   });
 }
 

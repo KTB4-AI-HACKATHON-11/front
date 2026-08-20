@@ -4,9 +4,8 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { getTaskDetail, updateSubTaskStatus, updateTaskCompletionNotification } from "../../api/taskApi";
+import { getTaskDetail, getTaskRunDetail, retryPhotoAttempt, updateSubTaskStatus, updateTaskCompletionNotification } from "../../api/taskApi";
 import { ensurePushSubscription } from "../../api/pushApi";
-import { groups } from "../../data/mockData";
 import { formatTaskDueAt, toSubTask } from "../../lib/taskDisplay";
 import SubTaskList from "./components/SubTaskList";
 import VerificationCard from "./components/VerificationCard";
@@ -31,15 +30,17 @@ function getChecklistActionError(error, fallback) {
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { taskId } = useParams();
+  const { taskId, runId } = useParams();
   const [taskDetail, setTaskDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [completedIds, setCompletedIds] = useState([]);
+  const [updatingIds, setUpdatingIds] = useState([]);
   const [selectedSubTaskId, setSelectedSubTaskId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [notificationError, setNotificationError] = useState("");
   const [isUpdatingNotification, setIsUpdatingNotification] = useState(false);
+  const [isRetryingPhoto, setIsRetryingPhoto] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,12 +49,14 @@ export default function TaskDetailPage({ user }) {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const data = await getTaskDetail({ taskId, requesterId: user?.memberId });
+        const data = runId
+          ? await getTaskRunDetail({ runId, requesterId: user?.memberId })
+          : await getTaskDetail({ taskId, requesterId: user?.memberId });
         if (!cancelled) {
           const nextChecklists = data?.checklists ?? [];
           setTaskDetail(data);
           setCompletedIds(nextChecklists.filter((item) => item.performed).map((item) => String(item.checklistId)));
-          setSelectedSubTaskId((current) => current ?? String(nextChecklists[0]?.checklistId ?? ""));
+          setSelectedSubTaskId(String(nextChecklists[0]?.checklistId ?? ""));
         }
       } catch (error) {
         if (!cancelled) {
@@ -74,22 +77,18 @@ export default function TaskDetailPage({ user }) {
     return () => {
       cancelled = true;
     };
-  }, [taskId, user?.memberId]);
+  }, [runId, taskId, user?.memberId]);
 
   const currentGroupId = location.state?.groupId ?? taskDetail?.groupId;
-  const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
-  const taskAssignmentId = taskDetail?.assignmentId
-    ?? taskDetail?.taskAssignmentId
-    ?? taskDetail?.assignment?.assignmentId
-    ?? taskDetail?.assignment?.id
-    ?? taskDetail?.taskAssignment?.id;
-  const subTasks = (taskDetail?.checklists ?? []).map((item) => toSubTask(item, taskAssignmentId));
+  const currentGroupName = taskDetail?.groupName || "그룹";
+  const subTasks = (taskDetail?.checklists ?? []).map(toSubTask);
   const isOverdue = taskDetail?.status === "OVERDUE";
   const canPerform = !isOverdue
     && taskDetail?.workerId != null
     && String(taskDetail.workerId) === String(user?.memberId);
   const canManageNotification = taskDetail?.managerId != null
     && String(taskDetail.managerId) === String(user?.memberId);
+  const canManageTask = Boolean(taskDetail?.canManage);
   const currentTask = taskDetail && {
     title: taskDetail.title,
     assignee: taskDetail.workerNickname || "담당자 없음",
@@ -101,16 +100,18 @@ export default function TaskDetailPage({ user }) {
       setErrorMessage("본인의 체크리스트가 아닙니다.");
       return;
     }
+    if (updatingIds.includes(subTaskId)) return;
 
     const willComplete = !completedIds.includes(subTaskId);
     setErrorMessage("");
+    setUpdatingIds((current) => [...current, subTaskId]);
     // 낙관적 업데이트: 응답을 기다리지 않고 먼저 화면에 반영하고, 실패하면 되돌립니다.
     setCompletedIds((current) =>
       willComplete ? [...current, subTaskId] : current.filter((id) => id !== subTaskId)
     );
     try {
       const result = await updateSubTaskStatus({
-        taskId,
+        taskId: taskDetail.taskId,
         subTaskId,
         workerId: taskDetail.workerId,
         performed: willComplete,
@@ -142,6 +143,8 @@ export default function TaskDetailPage({ user }) {
         willComplete ? current.filter((id) => id !== subTaskId) : [...current, subTaskId]
       );
       setErrorMessage(getChecklistActionError(error, "수행 여부 저장에 실패했습니다. 잠시 후 다시 시도해주세요."));
+    } finally {
+      setUpdatingIds((current) => current.filter((id) => id !== subTaskId));
     }
   };
 
@@ -156,7 +159,10 @@ export default function TaskDetailPage({ user }) {
 
     const targetSubTaskId = subTaskId ?? selectedSubTask?.id;
     if (!targetSubTaskId) return;
-    navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`, { state: { groupId: currentGroupId } });
+    const path = runId
+      ? `/task-runs/${runId}/verify/photo/${targetSubTaskId}`
+      : `/tasks/${taskId}/verify/photo/${targetSubTaskId}`;
+    navigate(path, { state: { groupId: currentGroupId } });
   };
 
   const handleCompletionNotificationToggle = async () => {
@@ -168,7 +174,7 @@ export default function TaskDetailPage({ user }) {
       if (enabled) {
         await ensurePushSubscription();
       }
-      const result = await updateTaskCompletionNotification({ taskId, enabled });
+      const result = await updateTaskCompletionNotification({ taskId: taskDetail.taskId, enabled });
       setTaskDetail((current) => current ? { ...current, notifyOnCompletion: result.enabled } : current);
     } catch (error) {
       setNotificationError(
@@ -178,6 +184,40 @@ export default function TaskDetailPage({ user }) {
       );
     } finally {
       setIsUpdatingNotification(false);
+    }
+  };
+
+  const handleRetryPhoto = async () => {
+    if (!canManageTask || !selectedSubTask?.latestAttemptId || isRetryingPhoto) return;
+    setIsRetryingPhoto(true);
+    setErrorMessage("");
+    try {
+      const result = await retryPhotoAttempt({
+        attemptId: selectedSubTask.latestAttemptId,
+        managerId: user.memberId,
+      });
+      if (result.status === "PASS") {
+        setCompletedIds((current) => [...new Set([...current, selectedSubTask.id])]);
+      }
+      setTaskDetail((current) => current ? {
+        ...current,
+        checklists: current.checklists.map((item) =>
+          String(item.assignmentId ?? item.checklistId) === String(selectedSubTask.assignmentId)
+            ? {
+                ...item,
+                assignmentStatus: result.assignmentStatus,
+                latestAttemptStatus: result.status,
+                performed: result.status === "PASS",
+              }
+            : item
+        ),
+      } : current);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError ? error.message : "사진 검증을 다시 처리하지 못했습니다."
+      );
+    } finally {
+      setIsRetryingPhoto(false);
     }
   };
 
@@ -192,29 +232,29 @@ export default function TaskDetailPage({ user }) {
   }
 
   if (!currentTask) {
-    return <StatusState user={user} type={loadError?.status === 403 ? "access" : "task"} description={loadError instanceof ApiError ? loadError.message : `요청하신 태스크(${taskId})를 찾을 수 없습니다.`} />;
+    return <StatusState user={user} type={loadError?.status === 403 ? "access" : "task"} description={loadError instanceof ApiError ? loadError.message : `요청하신 태스크(${runId || taskId})를 찾을 수 없습니다.`} />;
   }
 
-  const groupPath = currentGroupId ?? currentGroup.id;
+  const groupPath = currentGroupId;
   const taskStatus = taskStatusMap[taskDetail.status] ?? taskStatusMap.IN_PROGRESS;
 
   return (
     <AppShell
       user={user}
       title={currentTask.title}
-      description={`${currentGroup.name}에서 태스크의 수행 현황을 확인합니다.`}
+      description={`${currentGroupName}에서 태스크의 수행 현황을 확인합니다.`}
       backTo={`/groups/${groupPath}`}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
-        { label: currentGroup.name, path: `/groups/${groupPath}` },
-        { label: currentTask.title, path: `/tasks/${taskId}`, current: true },
+        { label: currentGroupName, path: `/groups/${groupPath}` },
+        { label: currentTask.title, path: runId ? `/task-runs/${runId}` : `/tasks/${taskId}`, current: true },
       ]}
     >
       <section className="task-detail-hero page-card">
         <div className="task-detail-hero__main">
           <div className="task-detail-hero__badges">
             <span className={`status-pill status-pill--${taskStatus.className}`}>{taskStatus.label}</span>
-            <span className="task-detail-id"><Copy size={12} /> TASK_ID · {taskId}</span>
+            <span className="task-detail-id"><Copy size={12} /> RUN_ID · {taskDetail.runId || taskId}</span>
           </div>
             <h2>{currentTask.title}</h2>
             <p>세부 체크리스트와 검증 상태를 한곳에서 확인할 수 있습니다.</p>
@@ -257,6 +297,7 @@ export default function TaskDetailPage({ user }) {
             onToggle={handleToggle}
             onPhotoOpen={openPhotoVerification}
             canPerform={canPerform}
+            updatingIds={updatingIds}
           />
           {isOverdue && (
             <p className="task-detail-content__error" role="alert">
@@ -270,7 +311,13 @@ export default function TaskDetailPage({ user }) {
             <div className="task-complete-message"><CheckCircle2 size={17} /> 모든 항목을 성공적으로 완료했습니다.</div>
           )}
         </section>
-        <VerificationCard subTask={selectedSubTask} onPhotoOpen={() => openPhotoVerification(selectedSubTask?.id)} />
+        <VerificationCard
+          subTask={selectedSubTask}
+          onPhotoOpen={() => openPhotoVerification(selectedSubTask?.id)}
+          canManage={canManageTask}
+          isRetrying={isRetryingPhoto}
+          onRetry={handleRetryPhoto}
+        />
       </div>
     </AppShell>
   );

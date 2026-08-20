@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
-import { getGroupDetail, getMyGroups } from "../../api/groupApi";
-import { getGroupTasks } from "../../api/taskApi";
+import { getMyGroups } from "../../api/groupApi";
 import { formatGroupId } from "../../lib/groupStorage";
 import GroupCard from "./components/GroupCard";
 import GroupJoinModal from "./components/GroupJoinModal";
@@ -17,57 +16,20 @@ export default function GroupListPage({ user }) {
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [taskStats, setTaskStats] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function enrichGroupCards(nextGroups) {
-      const results = await Promise.allSettled(
-        nextGroups.map((group) =>
-          getGroupDetail({ groupId: group.groupId, memberId: user.memberId })
-        )
-      );
-      if (cancelled) return;
-
-      setGroups(
-        nextGroups.map((group, index) =>
-          results[index].status === "fulfilled"
-            ? { ...group, ...results[index].value }
-            : group
-        )
-      );
-    }
-
-    async function loadTaskStats(nextGroups) {
-      const results = await Promise.allSettled(
-        nextGroups.map((group) =>
-          getGroupTasks({ groupId: group.groupId, requesterId: user.memberId })
-        )
-      );
-      if (cancelled || results.some((result) => result.status === "rejected")) return;
-
-      const tasks = results.flatMap((result) => result.value?.items ?? []);
-      setTaskStats({
-        active: tasks.filter((task) => task.status !== "COMPLETED").length,
-        completedToday: 0,
-      });
-    }
-
     async function loadGroups() {
       setIsLoading(true);
       setErrorMessage("");
-      setTaskStats(null);
       try {
         const data = await getMyGroups({ memberId: user.memberId });
         const nextGroups = data ?? [];
         if (cancelled) return;
 
-        // 목록을 즉시 표시하고 카드 상세와 태스크 통계는 서로 기다리지 않고 보강합니다.
         setGroups(nextGroups);
         setIsLoading(false);
-        void enrichGroupCards(nextGroups);
-        void loadTaskStats(nextGroups);
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(
@@ -90,6 +52,10 @@ export default function GroupListPage({ user }) {
   const filteredGroups = groups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
   );
+  const activeTaskCount = groups.reduce((sum, group) => sum + (group.taskCount ?? 0), 0);
+  const averageCompletionRate = groups.length
+    ? Math.round(groups.reduce((sum, group) => sum + (group.completionRate ?? 0), 0) / groups.length)
+    : 0;
 
   return (
     <AppShell
@@ -115,8 +81,8 @@ export default function GroupListPage({ user }) {
         </div>
         <div className="group-overview__stats">
           <div><span>참여 그룹</span><strong>{groups.length}</strong></div>
-          <div><span>진행 태스크</span><strong>{taskStats?.active ?? "-"}</strong></div>
-          <div><span>오늘 완료</span><strong className="is-green">{taskStats?.completedToday ?? 0}</strong></div>
+          <div><span>활성 태스크</span><strong>{activeTaskCount}</strong></div>
+          <div><span>평균 완료율</span><strong className="is-green">{averageCompletionRate}%</strong></div>
         </div>
       </section>
 

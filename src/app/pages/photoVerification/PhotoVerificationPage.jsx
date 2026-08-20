@@ -5,8 +5,7 @@ import AppShell from "../../components/AppShell";
 import ProgressiveImage from "../../components/ProgressiveImage";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { getTaskDetail, submitPhotoAttempt } from "../../api/taskApi";
-import { groups } from "../../data/mockData";
+import { getTaskDetail, getTaskRunDetail, requestManagerReview, submitPhotoAttempt } from "../../api/taskApi";
 import { toSubTask } from "../../lib/taskDisplay";
 import CameraFrame from "./components/CameraFrame";
 import FailureResult from "./components/FailureResult";
@@ -17,8 +16,6 @@ import "./PhotoVerificationPage.css";
 
 // 같은 항목에서 AI 검증에 연속 실패했을 때 "매니저에게 확인 요청"을 노출하는 기준 횟수
 const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
-// TODO: 개발 단계에서는 업로드 사진의 EXIF 촬영일 검증을 잠시 꺼둡니다. exifDate.js 구현/테스트는
-// 끝났으니, 실제 배포 전에는 이 값을 true로 되돌려 다시 켜야 합니다.
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -33,7 +30,7 @@ function getPhotoActionError(error) {
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { taskId, subTaskId } = useParams();
+  const { taskId, runId, subTaskId } = useParams();
   const [taskDetail, setTaskDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -44,12 +41,10 @@ export default function PhotoVerificationPage({ user }) {
   const [verificationResult, setVerificationResult] = useState(null); // { success, status, reason, fix }
   const [failCount, setFailCount] = useState(0);
   const [reviewRequested, setReviewRequested] = useState(false);
+  const [requestingReview, setRequestingReview] = useState(false);
   const capturedImageRef = useRef(capturedImage);
   const isMountedRef = useRef(true);
 
-  // 태스크 상세를 실제 API에서 불러옵니다. 이 화면은 이전에 mockData의 tasks 배열을 사용했기 때문에
-  // 실제 태스크 id(예: 2)로 접근하면 항상 "태스크를 찾을 수 없어요"가 떴습니다. TaskDetailPage와 동일한
-  // getTaskDetail API를 사용하도록 맞춰 이 문제를 해결합니다.
   useEffect(() => {
     let cancelled = false;
 
@@ -57,8 +52,17 @@ export default function PhotoVerificationPage({ user }) {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const data = await getTaskDetail({ taskId, requesterId: user?.memberId });
-        if (!cancelled) setTaskDetail(data);
+        const data = runId
+          ? await getTaskRunDetail({ runId, requesterId: user?.memberId })
+          : await getTaskDetail({ taskId, requesterId: user?.memberId });
+        if (!cancelled) {
+          setTaskDetail(data);
+          const current = (data?.checklists ?? []).find(
+            (item) => String(item.checklistId) === String(subTaskId)
+          );
+          setFailCount(current?.attemptNumber ?? 0);
+          setReviewRequested(current?.assignmentStatus === "MANAGER_REVIEW_REQUESTED");
+        }
       } catch (error) {
         if (!cancelled) {
           setTaskDetail(null);
@@ -78,7 +82,7 @@ export default function PhotoVerificationPage({ user }) {
     return () => {
       cancelled = true;
     };
-  }, [taskId, user?.memberId]);
+  }, [runId, subTaskId, taskId, user?.memberId]);
 
   // 다른 체크리스트 항목(subTaskId)으로 이동하면 이전 항목에서 남아있던 촬영/검증 상태가 그대로
   // 보이지 않도록 초기화합니다. 이 페이지는 같은 라우트 패턴이라 subTaskId만 바뀌면 컴포넌트가
@@ -93,6 +97,7 @@ export default function PhotoVerificationPage({ user }) {
     setVerificationResult(null);
     setFailCount(0);
     setReviewRequested(false);
+    setRequestingReview(false);
   }, [subTaskId]);
 
   useEffect(() => {
@@ -173,10 +178,31 @@ export default function PhotoVerificationPage({ user }) {
     }
   };
 
-  const handleRequestReview = () => {
-    // TODO: 매니저 확인 요청 API가 아직 없어 화면 상태만 변경합니다. 연동 시 이 체크리스트를
-    // "매니저 확인 대기" 상태로 서버에 저장하는 API를 호출해야 합니다.
-    setReviewRequested(true);
+  const handleRequestReview = async () => {
+    if (!subTask?.assignmentId || requestingReview) return;
+    setRequestingReview(true);
+    setUploadError("");
+    try {
+      await requestManagerReview({
+        assignmentId: subTask.assignmentId,
+        workerId: user.memberId,
+      });
+      setReviewRequested(true);
+      setTaskDetail((current) => current ? {
+        ...current,
+        checklists: current.checklists.map((item) =>
+          String(item.assignmentId ?? item.checklistId) === String(subTask.assignmentId)
+            ? { ...item, assignmentStatus: "MANAGER_REVIEW_REQUESTED" }
+            : item
+        ),
+      } : current);
+    } catch (error) {
+      setUploadError(
+        error instanceof ApiError ? error.message : "매니저 확인을 요청하지 못했습니다."
+      );
+    } finally {
+      setRequestingReview(false);
+    }
   };
 
   if (!user?.memberId) {
@@ -196,7 +222,7 @@ export default function PhotoVerificationPage({ user }) {
       <StatusState
         user={user}
         type={loadError?.status === 403 ? "access" : "task"}
-        description={loadError instanceof ApiError ? loadError.message : `요청하신 태스크(${taskId})를 찾을 수 없습니다.`}
+        description={loadError instanceof ApiError ? loadError.message : `요청하신 태스크(${runId || taskId})를 찾을 수 없습니다.`}
       />
     );
   }
@@ -205,12 +231,7 @@ export default function PhotoVerificationPage({ user }) {
     return <StatusState user={user} type="access" description="본인의 체크리스트가 아닙니다." />;
   }
 
-  const taskAssignmentId = taskDetail.assignmentId
-    ?? taskDetail.taskAssignmentId
-    ?? taskDetail.assignment?.assignmentId
-    ?? taskDetail.assignment?.id
-    ?? taskDetail.taskAssignment?.id;
-  const subTasks = (taskDetail.checklists ?? []).map((item) => toSubTask(item, taskAssignmentId));
+  const subTasks = (taskDetail.checklists ?? []).map(toSubTask);
   const subTaskIndex = subTasks.findIndex((item) => item.id === String(subTaskId));
   const subTask = subTaskIndex >= 0 ? subTasks[subTaskIndex] : null;
 
@@ -220,7 +241,7 @@ export default function PhotoVerificationPage({ user }) {
       <StatusState
         user={user}
         type="task"
-        description={`요청하신 태스크(${taskId})의 사진 검증 항목(${subTaskId})을 찾을 수 없습니다.`}
+        description={`요청하신 태스크(${runId || taskId})의 사진 검증 항목(${subTaskId})을 찾을 수 없습니다.`}
       />
     );
   }
@@ -233,14 +254,14 @@ export default function PhotoVerificationPage({ user }) {
         title="이미 수행 완료한 항목입니다"
         description="완료된 사진 검증 항목은 다시 접근할 수 없습니다. 태스크 상세 화면에서 다른 항목을 확인해주세요."
         actionLabel="태스크 상세로 돌아가기"
-        actionPath={`/tasks/${taskId}`}
+        actionPath={runId ? `/task-runs/${runId}` : `/tasks/${taskId}`}
       />
     );
   }
 
-  // 그룹 정보를 조회하는 API가 아직 없어, 태스크 상세 응답의 groupId로 mock 그룹 목록에서 이름만 보조적으로 찾습니다.
   const currentGroupId = location.state?.groupId ?? taskDetail.groupId;
-  const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
+  const currentGroupName = taskDetail.groupName || "그룹";
+  const taskDetailPath = runId ? `/task-runs/${runId}` : `/tasks/${taskId}`;
   const isResultView = Boolean(verificationResult) || verifying || reviewRequested;
   const canRequestReview = failCount >= MANAGER_REVIEW_FAIL_THRESHOLD;
 
@@ -249,23 +270,23 @@ export default function PhotoVerificationPage({ user }) {
       user={user}
       title="사진 검증"
       description={`${taskDetail.title}의 현장 사진을 촬영하고 검증합니다.`}
-      backTo={`/tasks/${taskId}`}
+      backTo={taskDetailPath}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
-        { label: currentGroup.name, path: `/groups/${currentGroupId}` },
-        { label: taskDetail.title, path: `/tasks/${taskId}` },
-        { label: "사진 검증", path: `/tasks/${taskId}/verify/photo/${subTaskId}`, current: true },
+        { label: currentGroupName, path: `/groups/${currentGroupId}` },
+        { label: taskDetail.title, path: taskDetailPath },
+        { label: "사진 검증", path: runId ? `/task-runs/${runId}/verify/photo/${subTaskId}` : `/tasks/${taskId}/verify/photo/${subTaskId}`, current: true },
       ]}
     >
       <div className={`photo-verification-layout ${isResultView ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
           {reviewRequested ? (
-            <ReviewRequested onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })} />
+            <ReviewRequested onConfirm={() => navigate(taskDetailPath, { state: { groupId: currentGroupId } })} />
           ) : verificationResult?.success ? (
             <SuccessResult
               reason={verificationResult.reason}
               description={subTask.instruction ? `${subTask.instruction} 기준으로 확인되었습니다.` : undefined}
-              onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}
+              onConfirm={() => navigate(taskDetailPath, { state: { groupId: currentGroupId } })}
             />
           ) : verificationResult && !verificationResult.success ? (
             <FailureResult
@@ -275,8 +296,9 @@ export default function PhotoVerificationPage({ user }) {
               attemptCount={failCount}
               canRequestReview={canRequestReview}
               onRetake={handleRetake}
-              onBack={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}
+              onBack={() => navigate(taskDetailPath, { state: { groupId: currentGroupId } })}
               onRequestReview={handleRequestReview}
+              requestingReview={requestingReview}
             />
           ) : verifying ? (
             <VerifyingState />
@@ -296,9 +318,9 @@ export default function PhotoVerificationPage({ user }) {
                 onUpload={handleUpload}
                 onRetake={handleRetake}
               />
-              {uploadError && <p className="photo-camera-card__error" role="alert">{uploadError}</p>}
             </>
           )}
+          {uploadError && <p className="photo-camera-card__error" role="alert">{uploadError}</p>}
         </section>
 
         {!isResultView && (
@@ -313,7 +335,7 @@ export default function PhotoVerificationPage({ user }) {
             <button className="primary-button" disabled={!captured} onClick={() => handleVerify(subTask)}>
               <ShieldCheck size={15} /> 사진으로 검증하기
             </button>
-            <button className="ghost-button" onClick={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}>나중에 검증하기</button>
+            <button className="ghost-button" onClick={() => navigate(taskDetailPath, { state: { groupId: currentGroupId } })}>나중에 검증하기</button>
           </aside>
         )}
       </div>

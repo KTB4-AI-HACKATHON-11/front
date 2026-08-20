@@ -7,7 +7,7 @@ import StatusState from "../../components/StatusState";
 import GroupGuide from "./components/GroupGuide";
 import { ApiError } from "../../api/client";
 import { createGroup } from "../../api/groupApi";
-import { formatGroupId, saveCreatedGroup } from "../../lib/groupStorage";
+import { formatGroupId } from "../../lib/groupStorage";
 import "./GroupCreatePage.css";
 
 const GROUP_NAME_MAX_LENGTH = 50;
@@ -118,11 +118,6 @@ export default function GroupCreatePage({ user }) {
         description: groupDescription.trim(),
       });
       const formattedGroupId = formatGroupId(groupId);
-      saveCreatedGroup({
-        id: formattedGroupId,
-        name: groupName.trim(),
-        description: groupDescription.trim() || "새로 만든 업무 그룹입니다.",
-      });
       window.sessionStorage.removeItem(GROUP_CREATE_DRAFT_KEY);
       navigate(`/groups/${formattedGroupId}`);
     } catch (error) {

@@ -21,7 +21,9 @@ export function formatTaskDueAt(dueAt) {
 
 export function toTaskCard(task) {
   return {
-    id: String(task.taskId),
+    id: task.runId || String(task.taskId),
+    taskId: String(task.taskId),
+    runId: task.runId,
     title: task.title,
     assignee: task.workerNickname || "담당자 없음",
     dueDate: formatTaskDueAt(task.dueAt),
@@ -33,11 +35,10 @@ export function toTaskCard(task) {
   };
 }
 
-export function toSubTask(item, taskAssignmentId) {
+export function toSubTask(item) {
   return {
     id: String(item.checklistId),
-    // 현재 백엔드는 checklistId에 task_assignments.id를 내려주므로 PHOTO 인증의 assignmentId로 사용합니다.
-    assignmentId: item.assignmentId ?? item.assignment?.assignmentId ?? item.assignment?.id ?? item.taskAssignmentId ?? item.taskAssignment?.id ?? taskAssignmentId ?? item.checklistId,
+    assignmentId: item.assignmentId ?? item.checklistId,
     title: item.title,
     instruction: item.instruction,
     completed: Boolean(item.performed),
@@ -45,5 +46,9 @@ export function toSubTask(item, taskAssignmentId) {
     rule: item.rule,
     referencePhotoUrl: item.referencePhotoUrl,
     submittedPhotoUrl: item.submittedPhotoUrl,
+    assignmentStatus: item.assignmentStatus,
+    latestAttemptId: item.latestAttemptId,
+    latestAttemptStatus: item.latestAttemptStatus,
+    attemptNumber: item.attemptNumber ?? 0,
   };
 }
