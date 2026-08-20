@@ -18,6 +18,14 @@ const taskStatusMap = {
   COMPLETED: { label: "완료", className: "complete" },
 };
 
+function getChecklistActionError(error, fallback) {
+  if (error instanceof ApiError && ["WORKER_REQUIRED", "WORKER_NOT_IN_GROUP", "GROUP_ACCESS_DENIED"].includes(error.code)) {
+    return "본인의 체크리스트가 아닙니다.";
+  }
+
+  return error instanceof ApiError ? error.message : fallback;
+}
+
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,7 +94,7 @@ export default function TaskDetailPage({ user }) {
 
   const handleToggle = async (subTaskId) => {
     if (!canPerform) {
-      setErrorMessage("이 태스크의 담당 워커만 수행 여부를 변경할 수 있습니다.");
+      setErrorMessage("본인의 체크리스트가 아닙니다.");
       return;
     }
 
@@ -129,11 +137,7 @@ export default function TaskDetailPage({ user }) {
       setCompletedIds((current) =>
         willComplete ? current.filter((id) => id !== subTaskId) : [...current, subTaskId]
       );
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "수행 여부 저장에 실패했습니다. 잠시 후 다시 시도해주세요."
-      );
+      setErrorMessage(getChecklistActionError(error, "수행 여부 저장에 실패했습니다. 잠시 후 다시 시도해주세요."));
     }
   };
 
@@ -142,7 +146,7 @@ export default function TaskDetailPage({ user }) {
 
   const openPhotoVerification = (subTaskId) => {
     if (!canPerform) {
-      setErrorMessage("이 태스크의 담당 워커만 사진 검증을 수행할 수 있습니다.");
+      setErrorMessage("본인의 체크리스트가 아닙니다.");
       return;
     }
 

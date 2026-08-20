@@ -19,7 +19,7 @@ export default function SubTaskList({ items, completedIds, selectedId, onToggle,
             >
               <span className="subtask-row__check">{completed && <Check size={14} strokeWidth={3} />}</span>
             </button>
-            <button className="subtask-row__detail" type="button" onClick={() => onSelect(item.id)}>
+            <button className="subtask-row__detail" type="button" disabled={!canPerform} onClick={() => onSelect(item.id)}>
               <span className="subtask-row__number">{String(index + 1).padStart(2, "0")}</span>
               <span className="subtask-row__copy">
                 <strong>{item.title}</strong>

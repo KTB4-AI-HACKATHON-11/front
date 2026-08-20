@@ -21,6 +21,14 @@ const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+function getPhotoActionError(error) {
+  if (error instanceof ApiError && ["WORKER_REQUIRED", "WORKER_NOT_IN_GROUP", "GROUP_ACCESS_DENIED"].includes(error.code)) {
+    return "본인의 체크리스트가 아닙니다.";
+  }
+
+  return error instanceof ApiError ? error.message : "사진 검증에 실패했습니다. 잠시 후 다시 시도해주세요.";
+}
+
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -168,7 +176,7 @@ export default function PhotoVerificationPage({ user }) {
     } catch (error) {
       clearInterval(progressIntervalRef.current);
       if (isMountedRef.current) {
-        setUploadError(error instanceof ApiError ? error.message : "사진 검증에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        setUploadError(getPhotoActionError(error));
       }
     } finally {
       if (isMountedRef.current) setVerifying(false);
@@ -204,7 +212,7 @@ export default function PhotoVerificationPage({ user }) {
   }
 
   if (taskDetail.workerId == null || String(taskDetail.workerId) !== String(user.memberId)) {
-    return <StatusState user={user} type="access" description="이 태스크의 담당 워커만 사진 검증을 수행할 수 있습니다." />;
+    return <StatusState user={user} type="access" description="본인의 체크리스트가 아닙니다." />;
   }
 
   const taskAssignmentId = taskDetail.assignmentId

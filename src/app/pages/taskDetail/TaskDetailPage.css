@@ -57,6 +57,7 @@
 .subtask-row__check-button:disabled { cursor: not-allowed; }
 .subtask-row__check-button:disabled .subtask-row__check { opacity: 0.65; }
 .subtask-row__detail { display: flex; min-width: 0; flex: 1; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.subtask-row__detail:disabled { cursor: not-allowed; opacity: 0.65; }
 .subtask-row__number { color: #b2b2bc; font-family: "Onest", sans-serif; font-size: 9px; }
 .subtask-row__check { display: flex; width: 23px; height: 23px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid #d5d5de; border-radius: 6px; color: white; }
 .subtask-row--done .subtask-row__check { border-color: #25a889; background: #25a889; }
