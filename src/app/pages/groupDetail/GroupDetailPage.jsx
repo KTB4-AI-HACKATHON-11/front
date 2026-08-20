@@ -5,8 +5,10 @@ import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getGroupDetail } from "../../api/groupApi";
-import { groups, members, tasks } from "../../data/mockData";
+import { getGroupMembers } from "../../api/memberApi";
+import { groups, tasks } from "../../data/mockData";
 import { mergeGroups } from "../../lib/groupStorage";
+import { toDisplayMembers } from "../../lib/memberDisplay";
 import GroupInviteModal from "./components/GroupInviteModal";
 import MemberList from "./components/MemberList";
 import TaskCard from "./components/TaskCard";
@@ -18,6 +20,7 @@ export default function GroupDetailPage({ user }) {
   const [copied, setCopied] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [groupDetail, setGroupDetail] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorType, setErrorType] = useState("group");
@@ -25,31 +28,39 @@ export default function GroupDetailPage({ user }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadGroupDetail() {
+    async function loadGroupDetailAndMembers() {
       setIsLoading(true);
       setErrorMessage("");
-      try {
-        const data = await getGroupDetail({ groupId, memberId: user.memberId });
-        if (!cancelled) setGroupDetail(data);
-      } catch (error) {
-        if (!cancelled) {
-          setGroupDetail(null);
-          if (error instanceof ApiError) {
-            setErrorMessage(error.message);
-            // 403: groupId는 존재하지만 memberId가 이 그룹 멤버가 아닌 경우 → 접근 권한 없음 화면
-            // 그 외(404 등): 존재하지 않는 그룹 → 그룹 없음 화면
-            setErrorType(error.status === 403 ? "access" : "group");
-          } else {
-            setErrorMessage("그룹 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
-            setErrorType("group");
-          }
+      // 그룹 상세와 멤버 목록은 서로 다른 API라 하나가 실패해도 나머지는 반영되도록
+      // allSettled로 독립적으로 처리합니다.
+      const [groupResult, membersResult] = await Promise.allSettled([
+        getGroupDetail({ groupId, memberId: user.memberId }),
+        getGroupMembers({ groupId, requesterId: user.memberId }),
+      ]);
+
+      if (cancelled) return;
+
+      if (groupResult.status === "fulfilled") {
+        setGroupDetail(groupResult.value);
+      } else {
+        setGroupDetail(null);
+        const error = groupResult.reason;
+        if (error instanceof ApiError) {
+          setErrorMessage(error.message);
+          // 403: groupId는 존재하지만 memberId가 이 그룹 멤버가 아닌 경우 → 접근 권한 없음 화면
+          // 그 외(404 등): 존재하지 않는 그룹 → 그룹 없음 화면
+          setErrorType(error.status === 403 ? "access" : "group");
+        } else {
+          setErrorMessage("그룹 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
+          setErrorType("group");
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
+
+      setGroupMembers(membersResult.status === "fulfilled" ? toDisplayMembers(membersResult.value) : []);
+      setIsLoading(false);
     }
 
-    loadGroupDetail();
+    loadGroupDetailAndMembers();
     return () => {
       cancelled = true;
     };
@@ -83,13 +94,13 @@ export default function GroupDetailPage({ user }) {
     );
   }
 
-  // role/memberCount는 백엔드에 요청해둔 필드입니다. 아직 응답에 없을 수 있어
-  // 실제 값이 오면 그걸 쓰고, 없으면 기존처럼 로컬 mock/생성 그룹 데이터로 보완합니다.
-  // 백엔드가 두 필드를 내려주기 시작하면 mockGroupInfo/fallback 코드는 걷어내면 됩니다.
+  // role은 아직 백엔드 응답에 없을 수 있어 실제 값이 오면 그걸 쓰고, 없으면 기존처럼
+  // 로컬 mock/생성 그룹 데이터로 보완합니다. 백엔드가 내려주기 시작하면 mockGroupInfo/fallback
+  // 코드는 걷어내면 됩니다. memberCount는 이제 실제 멤버 목록 API 결과 개수를 우선 사용합니다.
   const mockGroupInfo = mergeGroups(groups).find((group) => group.id === groupId);
   const role = groupDetail.role ?? mockGroupInfo?.currentUserRole;
   const canManage = role === "MANAGER";
-  const memberCount = groupDetail.memberCount ?? mockGroupInfo?.memberCount;
+  const memberCount = groupMembers.length || groupDetail.memberCount || mockGroupInfo?.memberCount;
   const groupTasks = groups.some((group) => group.id === groupId) ? tasks : [];
 
   return (
@@ -157,7 +168,7 @@ export default function GroupDetailPage({ user }) {
             )}
           </div>
         </section>
-        <MemberList members={members} />
+        <MemberList members={groupMembers} />
       </div>
       {isInviteModalOpen && (
         <GroupInviteModal groupId={groupId} onClose={() => setIsInviteModalOpen(false)} />

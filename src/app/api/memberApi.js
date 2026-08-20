@@ -29,3 +29,14 @@ export function loginMember({ nickname }) {
     body: { nickname },
   });
 }
+
+/**
+ * 그룹 멤버 목록 조회
+ * GET /api/v1/groups/{groupId}/members?requesterId={requesterId}
+ * requesterId로 요청자가 해당 그룹의 멤버인지 함께 검증합니다.
+ * @param {{ groupId: string|number, requesterId: number }} params
+ * @returns {Promise<Array<{ memberId: number, nickname: string, role: "MANAGER"|"WORKER" }>>}
+ */
+export function getGroupMembers({ groupId, requesterId }) {
+  return apiRequest(`/groups/${groupId}/members?requesterId=${requesterId}`);
+}

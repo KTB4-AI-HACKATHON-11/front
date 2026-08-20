@@ -6,7 +6,8 @@ import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { createTask, generateTaskChecklist } from "../../api/taskApi";
 import { getGroupDetail } from "../../api/groupApi";
-import { members } from "../../data/mockData";
+import { getGroupMembers } from "../../api/memberApi";
+import { toDisplayMembers } from "../../lib/memberDisplay";
 import "./TaskCreatePage.css";
 
 const TASK_TITLE_MAX_LENGTH = 200;
@@ -28,7 +29,9 @@ function toDateTimeLocalValue(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function loadDraft(groupId, workerMembers) {
+// 그룹 멤버 목록은 비동기로 불러오므로, 여기서는 draft의 assigneeId를 그대로 신뢰해 복원하고
+// 실제 멤버 목록이 로드된 뒤 유효하지 않으면 컴포넌트 쪽 effect에서 기본값으로 보정합니다.
+function loadDraft(groupId) {
   if (typeof window === "undefined") {
     return null;
   }
@@ -40,10 +43,9 @@ function loadDraft(groupId, workerMembers) {
     }
 
     const parsedDraft = JSON.parse(rawDraft);
-    const hasMatchingAssignee = workerMembers.some((member) => member.id === parsedDraft.assigneeId);
 
     return {
-      assigneeId: hasMatchingAssignee ? parsedDraft.assigneeId : workerMembers[0]?.id ?? "",
+      assigneeId: parsedDraft.assigneeId ?? "",
       title: typeof parsedDraft.title === "string" ? parsedDraft.title : "",
       message: typeof parsedDraft.message === "string" ? parsedDraft.message : "",
       dueAt: typeof parsedDraft.dueAt === "string" ? parsedDraft.dueAt : "",
@@ -96,13 +98,8 @@ function validateTaskCreateForm({ title, message, assigneeId, dueAt }) {
 export default function TaskCreatePage({ user }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  // TODO: 그룹의 실제 멤버를 조회하는 API가 아직 없어 mockData.js의 WORKER(id 1~5)를 담당자 후보로 사용합니다.
-  // 백엔드에 "그룹 멤버 목록 조회" API가 추가되면 workerMembers를 실제 데이터로 교체해야
-  // 태스크 최종 등록 시 보내는 workerId가 해당 그룹에 실제로 속한 멤버 ID와 일치합니다.
-  const workerMembers = members.filter((member) => member.role === "WORKER");
-  const defaultAssigneeId = workerMembers[0]?.id ?? "";
-  const draft = loadDraft(groupId, workerMembers);
-  const [assigneeId, setAssigneeId] = useState(draft?.assigneeId ?? defaultAssigneeId);
+  const draft = loadDraft(groupId);
+  const [assigneeId, setAssigneeId] = useState(draft?.assigneeId ?? "");
   const [title, setTitle] = useState(draft?.title ?? "");
   const [message, setMessage] = useState(draft?.message ?? "");
   const [dueAt, setDueAt] = useState(draft?.dueAt ?? "");
@@ -116,9 +113,13 @@ export default function TaskCreatePage({ user }) {
   const [saveError, setSaveError] = useState("");
   const [accessDenied, setAccessDenied] = useState(false);
   const [currentGroup, setCurrentGroup] = useState(null);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [membersLoadFailed, setMembersLoadFailed] = useState(false);
   const [isGroupLoading, setIsGroupLoading] = useState(true);
   const minDueAt = useMemo(() => toDateTimeLocalValue(new Date()), []);
   const referencePhotosRef = useRef(referencePhotos);
+  const workerMembers = groupMembers.filter((member) => member.role === "WORKER");
+  const defaultAssigneeId = workerMembers[0]?.id ?? "";
   const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId, dueAt }, defaultAssigneeId) && !generatedChecklist;
   const hasValidMemberSession = Boolean(user?.memberId);
   const hasValidGroupId = Boolean(currentGroup);
@@ -134,23 +135,41 @@ export default function TaskCreatePage({ user }) {
 
     let cancelled = false;
 
-    async function loadGroup() {
+    async function loadGroupAndMembers() {
       setIsGroupLoading(true);
-      try {
-        const data = await getGroupDetail({ groupId, memberId: user.memberId });
-        if (!cancelled) setCurrentGroup(data);
-      } catch {
-        if (!cancelled) setCurrentGroup(null);
-      } finally {
-        if (!cancelled) setIsGroupLoading(false);
-      }
+      // 그룹 상세와 그룹 멤버 목록은 서로 다른 API라 하나가 실패해도 나머지는 반영되도록
+      // allSettled로 독립적으로 처리합니다.
+      const [groupResult, membersResult] = await Promise.allSettled([
+        getGroupDetail({ groupId, memberId: user.memberId }),
+        getGroupMembers({ groupId, requesterId: user.memberId }),
+      ]);
+
+      if (cancelled) return;
+
+      setCurrentGroup(groupResult.status === "fulfilled" ? groupResult.value : null);
+      setGroupMembers(membersResult.status === "fulfilled" ? toDisplayMembers(membersResult.value) : []);
+      setMembersLoadFailed(membersResult.status !== "fulfilled");
+      setIsGroupLoading(false);
     }
 
-    loadGroup();
+    loadGroupAndMembers();
     return () => {
       cancelled = true;
     };
   }, [groupId, hasValidMemberSession, user?.memberId]);
+
+  // 멤버 목록이 로드된 뒤, 세션에 저장돼 있던(또는 초기화되지 않은) assigneeId가 실제 WORKER
+  // 목록에 없으면 첫 번째 WORKER로 보정합니다.
+  useEffect(() => {
+    if (isGroupLoading || workerMembers.length === 0) {
+      return;
+    }
+
+    setAssigneeId((current) =>
+      workerMembers.some((member) => member.id === current) ? current : defaultAssigneeId
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGroupLoading, groupMembers]);
 
   useEffect(() => {
     if (generatedChecklist) {
@@ -563,6 +582,12 @@ export default function TaskCreatePage({ user }) {
                     </button>
                   ))}
                 </div>
+                {membersLoadFailed && (
+                  <p className="task-create-form__error" role="alert">멤버 목록을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.</p>
+                )}
+                {!membersLoadFailed && workerMembers.length === 0 && (
+                  <p className="task-create-field__meta"><span>이 그룹에는 아직 담당자로 지정할 수 있는 알바(WORKER) 멤버가 없습니다.</span></p>
+                )}
               </div>
               <div className="task-create-field">
                 <label className="field-label" htmlFor="task-title">태스크 제목<span className="field-label__required">*</span></label>
