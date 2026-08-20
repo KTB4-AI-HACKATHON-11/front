@@ -10,6 +10,7 @@ import TaskCreatePage from "./pages/taskCreate/TaskCreatePage";
 import TaskVerificationPage from "./pages/taskVerification/TaskVerificationPage";
 import TaskDetailPage from "./pages/taskDetail/TaskDetailPage";
 import PhotoVerificationPage from "./pages/photoVerification/PhotoVerificationPage";
+import { loadStoredUser, saveUser } from "./lib/authStorage";
 
 const initialUser = {
   nickname: "민준",
@@ -17,14 +18,21 @@ const initialUser = {
 };
 
 export default function App() {
-  const [user, setUser] = useState(initialUser);
+  const [user, setUser] = useState(() => loadStoredUser() ?? initialUser);
+
+  // 로그인/회원가입 성공 시 state와 localStorage를 함께 갱신합니다.
+  // (localStorage에 저장해두지 않으면 새로고침할 때마다 memberId 등 로그인 정보가 사라집니다.)
+  const handleAuthenticated = (nextUser) => {
+    setUser(nextUser);
+    saveUser(nextUser);
+  };
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage onLogin={setUser} />} />
-        <Route path="/signup" element={<SignupPage onSignup={setUser} />} />
+        <Route path="/login" element={<LoginPage onLogin={handleAuthenticated} />} />
+        <Route path="/signup" element={<SignupPage onSignup={handleAuthenticated} />} />
         <Route path="/groups" element={<GroupListPage user={user} />} />
         <Route path="/groups/new" element={<GroupCreatePage user={user} />} />
         <Route path="/groups/:groupId" element={<GroupDetailPage user={user} />} />

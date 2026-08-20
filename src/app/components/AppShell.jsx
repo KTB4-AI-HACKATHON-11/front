@@ -1,6 +1,7 @@
 import { ChevronLeft, LayoutGrid, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import BrandMark from "./BrandMark";
+import { clearStoredUser } from "../lib/authStorage";
 import "./AppShell.css";
 
 const navigation = [
@@ -43,7 +44,14 @@ export default function AppShell({ user, children, title, description, backTo, a
             <strong>{user.nickname}</strong>
             <span>{user.email || "CheckOn 멤버"}</span>
           </div>
-          <button className="icon-button" onClick={() => navigate("/login")} title="로그아웃">
+          <button
+            className="icon-button"
+            onClick={() => {
+              clearStoredUser();
+              navigate("/login");
+            }}
+            title="로그아웃"
+          >
             <LogOut size={16} />
           </button>
         </div>
