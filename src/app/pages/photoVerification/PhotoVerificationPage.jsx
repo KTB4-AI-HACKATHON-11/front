@@ -20,6 +20,8 @@ const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
 // TODO: 개발 단계에서는 업로드 사진의 EXIF 촬영일 검증을 잠시 꺼둡니다. exifDate.js 구현/테스트는
 // 끝났으니, 실제 배포 전에는 이 값을 true로 되돌려 다시 켜야 합니다.
 const ENABLE_UPLOAD_DATE_CHECK = false;
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
@@ -113,16 +115,19 @@ export default function PhotoVerificationPage({ user }) {
     setCaptured(true);
   };
 
-  // 카메라로 바로 촬영한 사진입니다. 그 자리에서 찍은 사진이라고 보고 별도의 촬영 시각 검증은 하지 않습니다.
-  const handleCapture = (file) => {
-    setCapturedFile(file);
-  };
-
   // 갤러리에서 불러온 사진입니다. 예전에 찍어둔 사진을 제출하는 것을 막기 위해 EXIF 촬영 시각이
   // 오늘 날짜인지 확인한 뒤에만 사용합니다. EXIF를 읽을 수 없는 파일(HEIC 등)은 안전하게 거부합니다.
   // TODO: ENABLE_UPLOAD_DATE_CHECK가 개발 단계라 꺼져 있어 지금은 이 검증을 건너뜁니다.
   const handleUpload = async (file) => {
     setUploadError("");
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      setUploadError("JPEG, PNG, WebP 형식의 사진만 업로드할 수 있어요.");
+      return;
+    }
+    if (file.size > MAX_PHOTO_SIZE) {
+      setUploadError("사진 파일은 10MB 이하만 업로드할 수 있어요.");
+      return;
+    }
     setIsCheckingUpload(true);
     try {
       if (ENABLE_UPLOAD_DATE_CHECK) {
@@ -301,13 +306,7 @@ export default function PhotoVerificationPage({ user }) {
                 captured={captured}
                 previewUrl={capturedImage?.previewUrl}
                 disabled={isCheckingUpload}
-                // TODO: ENABLE_UPLOAD_DATE_CHECK를 다시 켜면 이 안내 문구도 함께 되돌려야 합니다.
-                hint={
-                  ENABLE_UPLOAD_DATE_CHECK
-                    ? "가이드 안에 매장 전체가 보이도록 촬영해주세요. 불러온 사진은 오늘 촬영한 사진만 사용할 수 있어요."
-                    : "가이드 안에 매장 전체가 보이도록 촬영해주세요."
-                }
-                onCapture={handleCapture}
+                hint="검증 기준에 맞는 사진을 업로드해주세요."
                 onUpload={handleUpload}
                 onRetake={handleRetake}
               />
