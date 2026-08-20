@@ -4,14 +4,22 @@ import { useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
+import { members } from "../../data/mockData";
 import "./TaskCreatePage.css";
 
 const TASK_TITLE_MAX_LENGTH = 200;
 const TASK_MESSAGE_MAX_LENGTH = 1000;
+const TASK_TITLE_PLACEHOLDER = "예: 오픈 전 매장 점검";
+const TASK_MESSAGE_PLACEHOLDER =
+  "예: 매장 오픈 전에 입구 청소 상태와 조명이 모두 켜졌는지 확인하고, 계산대 시재와 영수증 용지를 점검해줘. 마지막에는 매장 전경 사진도 찍어야 해.";
 
-function validateTaskCreateForm({ title, message }) {
+function validateTaskCreateForm({ title, message, assigneeId }) {
   const trimmedTitle = title.trim();
   const trimmedMessage = message.trim();
+
+  if (!assigneeId) {
+    return "담당자를 선택해주세요.";
+  }
 
   if (!trimmedTitle) {
     return "태스크 제목을 입력해주세요.";
@@ -34,10 +42,10 @@ function validateTaskCreateForm({ title, message }) {
 
 export default function TaskCreatePage({ user }) {
   const { groupId } = useParams();
-  const [title, setTitle] = useState("오픈 전 매장 점검");
-  const [message, setMessage] = useState(
-    "매장 오픈 전에 입구 청소 상태와 조명이 모두 켜졌는지 확인하고, 계산대 시재와 영수증 용지를 점검해줘. 마지막에는 매장 전경 사진도 찍어야 해."
-  );
+  const workerMembers = members.filter((member) => member.role === "WORKER");
+  const [assigneeId, setAssigneeId] = useState(workerMembers[0]?.id ?? "");
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
@@ -46,7 +54,7 @@ export default function TaskCreatePage({ user }) {
     event.preventDefault();
     if (isGenerating) return;
 
-    const nextErrorMessage = validateTaskCreateForm({ title, message });
+    const nextErrorMessage = validateTaskCreateForm({ title, message, assigneeId });
     if (nextErrorMessage) {
       setErrorMessage(nextErrorMessage);
       return;
@@ -64,7 +72,10 @@ export default function TaskCreatePage({ user }) {
         title: title.trim(),
         message: message.trim(),
       });
-      setGeneratedChecklist(result);
+      setGeneratedChecklist({
+        ...result,
+        assigneeName: workerMembers.find((member) => member.id === assigneeId)?.name ?? "",
+      });
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -124,12 +135,32 @@ export default function TaskCreatePage({ user }) {
                 <p>업무 요구사항을 평소 말하듯 입력하면 체크리스트로 정리합니다.</p>
               </div>
               <div className="task-create-field">
+                <label className="field-label">담당자<span className="field-label__required">*</span></label>
+                <div className="task-create-assignees" role="radiogroup" aria-label="담당자 선택">
+                  {workerMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className={`task-create-assignee ${assigneeId === member.id ? "is-selected" : ""}`}
+                      onClick={() => setAssigneeId(member.id)}
+                      disabled={isGenerating}
+                      aria-pressed={assigneeId === member.id}
+                    >
+                      <span className={`member-avatar member-avatar--${member.color}`}>{member.initial}</span>
+                      <strong>{member.name}</strong>
+                      <small>알바</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="task-create-field">
                 <label className="field-label" htmlFor="task-title">태스크 제목<span className="field-label__required">*</span></label>
                 <input
                   className="text-input"
                   id="task-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
+                  placeholder={TASK_TITLE_PLACEHOLDER}
                   maxLength={TASK_TITLE_MAX_LENGTH}
                   required
                   disabled={isGenerating}
@@ -147,6 +178,7 @@ export default function TaskCreatePage({ user }) {
                     id="task-prompt"
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
+                    placeholder={TASK_MESSAGE_PLACEHOLDER}
                     maxLength={TASK_MESSAGE_MAX_LENGTH}
                     required
                     disabled={isGenerating}

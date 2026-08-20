@@ -23,6 +23,28 @@
 .task-create-field { margin-bottom: 22px; }
 .task-create-field__meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; color: #9797a2; font-size: 10px; }
 .task-create-field__meta strong { color: #6d6d78; font-size: 10px; font-weight: 600; }
+.task-create-assignees { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.task-create-assignee {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e3e3eb;
+  border-radius: 12px;
+  background: #ffffff;
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.task-create-assignee strong { color: #474752; font-size: 12px; }
+.task-create-assignee small { color: #9797a2; font-size: 10px; }
+.task-create-assignee .member-avatar { grid-row: 1 / span 2; }
+.task-create-assignee.is-selected {
+  border-color: #6255e7;
+  background: #f6f4ff;
+  box-shadow: inset 0 0 0 1px rgba(98, 85, 231, 0.18);
+}
 
 .task-create-form__error { margin: 0; padding: 10px 12px; border: 1px solid #f3c6c6; border-radius: 8px; background: #fdf2f2; color: #c23a3a; font-size: 11px; }
 
@@ -65,5 +87,6 @@
 }
 
 @media (max-width: 660px) {
+  .task-create-assignees { grid-template-columns: 1fr; }
   .task-create-side { grid-template-columns: 1fr; }
 }
