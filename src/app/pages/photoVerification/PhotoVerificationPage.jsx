@@ -27,6 +27,9 @@ const MOCK_VERIFY_THRESHOLD = 80;
 const MOCK_FORCE_FAIL_ATTEMPTS = 0;
 // 같은 항목에서 AI 검증에 연속 실패했을 때 "매니저에게 확인 요청"을 노출하는 기준 횟수
 const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
+// TODO: 개발 단계에서는 업로드 사진의 EXIF 촬영일 검증을 잠시 꺼둡니다. exifDate.js 구현/테스트는
+// 끝났으니, 실제 배포 전에는 이 값을 true로 되돌려 다시 켜야 합니다.
+const ENABLE_UPLOAD_DATE_CHECK = false;
 
 function verifyPhotoMock({ failCount, rule }) {
   return new Promise((resolve) => {
@@ -146,20 +149,23 @@ export default function PhotoVerificationPage({ user }) {
 
   // 갤러리에서 불러온 사진입니다. 예전에 찍어둔 사진을 제출하는 것을 막기 위해 EXIF 촬영 시각이
   // 오늘 날짜인지 확인한 뒤에만 사용합니다. EXIF를 읽을 수 없는 파일(HEIC 등)은 안전하게 거부합니다.
+  // TODO: ENABLE_UPLOAD_DATE_CHECK가 개발 단계라 꺼져 있어 지금은 이 검증을 건너뜁니다.
   const handleUpload = async (file) => {
     setUploadError("");
     setIsCheckingUpload(true);
     try {
-      const takenAt = await readJpegCapturedAt(file);
-      if (!isMountedRef.current) return; // 확인 중 다른 화면으로 이동한 경우 상태 갱신을 건너뜁니다.
+      if (ENABLE_UPLOAD_DATE_CHECK) {
+        const takenAt = await readJpegCapturedAt(file);
+        if (!isMountedRef.current) return; // 확인 중 다른 화면으로 이동한 경우 상태 갱신을 건너뜁니다.
 
-      if (!takenAt) {
-        setUploadError("사진 촬영 시각을 확인할 수 없어요. 카메라로 바로 촬영해주세요.");
-        return;
-      }
-      if (!isSameLocalDate(takenAt, new Date())) {
-        setUploadError("오늘 촬영한 사진만 업로드할 수 있어요.");
-        return;
+        if (!takenAt) {
+          setUploadError("사진 촬영 시각을 확인할 수 없어요. 카메라로 바로 촬영해주세요.");
+          return;
+        }
+        if (!isSameLocalDate(takenAt, new Date())) {
+          setUploadError("오늘 촬영한 사진만 업로드할 수 있어요.");
+          return;
+        }
       }
       setCapturedFile(file);
     } finally {
@@ -313,6 +319,12 @@ export default function PhotoVerificationPage({ user }) {
                 captured={captured}
                 previewUrl={capturedImage?.previewUrl}
                 disabled={isCheckingUpload}
+                // TODO: ENABLE_UPLOAD_DATE_CHECK를 다시 켜면 이 안내 문구도 함께 되돌려야 합니다.
+                hint={
+                  ENABLE_UPLOAD_DATE_CHECK
+                    ? "가이드 안에 매장 전체가 보이도록 촬영해주세요. 불러온 사진은 오늘 촬영한 사진만 사용할 수 있어요."
+                    : "가이드 안에 매장 전체가 보이도록 촬영해주세요."
+                }
                 onCapture={handleCapture}
                 onUpload={handleUpload}
                 onRetake={handleRetake}

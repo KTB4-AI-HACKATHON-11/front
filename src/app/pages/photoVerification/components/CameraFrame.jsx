@@ -1,7 +1,9 @@
 import { Camera, ImagePlus, RotateCcw } from "lucide-react";
 import { useRef } from "react";
 
-export default function CameraFrame({ captured, previewUrl, disabled, onCapture, onUpload, onRetake }) {
+const DEFAULT_HINT = "가이드 안에 매장 전체가 보이도록 촬영해주세요.";
+
+export default function CameraFrame({ captured, previewUrl, disabled, hint, onCapture, onUpload, onRetake }) {
   const captureInputRef = useRef(null);
   const uploadInputRef = useRef(null);
 
@@ -67,7 +69,7 @@ export default function CameraFrame({ captured, previewUrl, disabled, onCapture,
         <span className="camera-controls__spacer" aria-hidden="true" />
       </div>
       <p className="camera-frame__hint">
-        <Camera size={12} /> 가이드 안에 매장 전체가 보이도록 촬영해주세요. 불러온 사진은 오늘 촬영한 사진만 사용할 수 있어요.
+        <Camera size={12} /> {hint || DEFAULT_HINT}
       </p>
 
       {/* capture 속성이 있으면 모바일 브라우저에서 바로 카메라 앱이 열립니다. */}
