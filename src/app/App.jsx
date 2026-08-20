@@ -37,7 +37,6 @@ export default function App() {
         <Route path="/groups/new" element={<GroupCreatePage user={user} />} />
         <Route path="/groups/:groupId" element={<GroupDetailPage user={user} />} />
         <Route path="/groups/:groupId/tasks/new" element={<TaskCreatePage user={user} />} />
-        <Route path="/tasks/new" element={<TaskCreatePage user={user} />} />
         <Route path="/tasks/:taskId/verification" element={<TaskVerificationPage user={user} />} />
         <Route path="/tasks/:taskId" element={<TaskDetailPage user={user} />} />
         <Route

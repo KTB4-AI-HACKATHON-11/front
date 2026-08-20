@@ -1,6 +1,23 @@
 // 태스크 관련 API
-// TODO: 백엔드에 태스크 관련 엔드포인트가 준비되면 아래 mock 구현들을 apiRequest 호출로 교체하세요.
-// import { apiRequest } from "./client";
+import { apiRequest } from "./client";
+
+/**
+ * AI 체크리스트 생성
+ * POST /api/v1/groups/{groupId}/tasks/generate
+ * MANAGER의 자연어 요구사항을 AI 서버로 보내 PHOTO 또는 CHECK 체크리스트로 변환합니다.
+ * 이 API는 결과를 저장하지 않고 프런트엔드에만 반환합니다(별도의 태스크 저장 API가 아직 없음).
+ * @param {{ groupId: string|number, managerId: number, title: string, message: string, assigneeName: string, dueAt: string }} params
+ * @returns {Promise<{
+ *   title: string, message: string, assigneeName: string, dueAt: string,
+ *   checklists: Array<{ sequence: number, title: string, instruction: string, completionType: "PHOTO"|"CHECK", rule: string }>
+ * }>}
+ */
+export function generateTaskChecklist({ groupId, managerId, title, message, assigneeName, dueAt }) {
+  return apiRequest(`/groups/${groupId}/tasks/generate`, {
+    method: "POST",
+    body: { managerId, title, message, assigneeName, dueAt },
+  });
+}
 
 /**
  * SUB_TASK 수행 여부 변경

@@ -22,6 +22,21 @@
 
 .task-create-field { margin-bottom: 22px; }
 
+.task-create-form__error { margin: 0; padding: 10px 12px; border: 1px solid #f3c6c6; border-radius: 8px; background: #fdf2f2; color: #c23a3a; font-size: 11px; }
+
+.task-create-result { width: min(100%, 700px); margin: 0 auto; padding: 24px; }
+.task-create-result .form-section-heading p { color: #9797a2; font-size: 11px; }
+.task-create-checklist { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; padding: 0; list-style: none; }
+.task-create-checklist li { padding: 14px 16px; border: 1px solid #eaeaf0; border-radius: 8px; background: #fafafd; }
+.task-create-checklist__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.task-create-checklist__top strong { color: #3f3f49; font-size: 11px; }
+.task-create-checklist__type { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; background: #f0f0f3; color: #74747f; font-size: 8px; }
+.task-create-checklist__type.is-photo { background: #fff1e8; color: #bd6732; }
+.task-create-checklist li p { margin: 6px 0 0; color: #7f7f8b; font-size: 10px; line-height: 1.5; }
+.task-create-checklist li small { display: block; margin-top: 5px; color: #9696a1; font-size: 9px; }
+.task-create-result__note { margin: 0 0 16px; color: #b36c1e; font-size: 10px; }
+.task-create-result__actions { display: flex; justify-content: flex-end; }
+
 .task-prompt-wrap { position: relative; }
 .task-prompt-wrap .text-area { min-height: 154px; padding-bottom: 39px; }
 .task-prompt-wrap > span { position: absolute; right: 11px; bottom: 10px; display: flex; align-items: center; gap: 4px; color: #6255e7; font-size: 9px; }
