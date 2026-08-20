@@ -1,0 +1,141 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      tag: ${{ steps.image.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set image name
+        id: image
+        shell: bash
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${REPO_NAME,,}-front"
+          TAG="${GITHUB_SHA::12}"
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create runtime Dockerfile
+        shell: bash
+        run: |
+          cat <<'EOF' > /tmp/front.Dockerfile
+          FROM node:24-bookworm-slim AS build
+          WORKDIR /app
+          RUN corepack enable
+          COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+          RUN pnpm install --frozen-lockfile --prefer-offline
+          COPY . .
+          RUN pnpm build
+
+          FROM nginx:1.27-alpine
+          COPY --from=build /app/dist /usr/share/nginx/html
+          EXPOSE 80
+          CMD ["nginx", "-g", "daemon off;"]
+          EOF
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: /tmp/front.Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}:${{ steps.image.outputs.tag }}
+            ${{ steps.image.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          APP_HOST: ${{ secrets.APP_HOST }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$APP_HOST" >> ~/.ssh/known_hosts
+
+      - name: Login to GHCR on App EC2
+        env:
+          APP_HOST: ${{ secrets.APP_HOST }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_TOKEN" | \
+            ssh -i ~/.ssh/deploy_key ubuntu@"$APP_HOST" \
+              "docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin"
+
+      - name: Deploy frontend
+        env:
+          APP_HOST: ${{ secrets.APP_HOST }}
+          IMAGE_REF: ${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}
+          IMAGE_REPO: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key ubuntu@"$APP_HOST" \
+            "IMAGE_REF='$IMAGE_REF' IMAGE_REPO='$IMAGE_REPO' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          docker pull "$IMAGE_REF"
+          docker rm -f frontend 2>/dev/null || true
+
+          docker run -d \
+            --name frontend \
+            --restart unless-stopped \
+            -p 127.0.0.1:3000:80 \
+            "$IMAGE_REF"
+
+          sleep 3
+          docker ps --filter name=frontend --filter status=running --format '{{.Names}}' | grep -qx frontend
+
+          CURRENT_IMAGE_ID="$(docker image inspect "$IMAGE_REF" --format '{{.Id}}')"
+          docker image ls "$IMAGE_REPO" --format '{{.Repository}}:{{.Tag}} {{.ID}}' | while read -r image id; do
+            if [ "$id" != "$CURRENT_IMAGE_ID" ]; then
+              docker image rm -f "$image" 2>/dev/null || true
+            fi
+          done
+          REMOTE

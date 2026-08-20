@@ -1,22 +1,50 @@
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import BrandMark from "../../components/BrandMark";
 import LoginPreview from "./components/LoginPreview";
+import { ApiError } from "../../api/client";
+import { loginMember } from "../../api/memberApi";
 import "./LoginPage.css";
 
 export default function LoginPage({ onLogin }) {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
-    // TODO: 로그인 API 연동 후 응답받은 계정 정보를 저장해야 합니다.
-    onLogin({
-      nickname: "민준",
-      email: "minjun@checkon.team",
-    });
-    navigate("/groups");
+
+    if (isSubmitting) return;
+
+    const formData = new FormData(event.currentTarget);
+    const nickname = (formData.get("nickname") ?? "").toString().trim();
+
+    if (!nickname) {
+      setErrorMessage("닉네임을 입력해주세요.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsSubmitting(true);
+    try {
+      const member = await loginMember({ nickname });
+
+      onLogin({
+        memberId: member.memberId,
+        nickname: member.nickname,
+        role: member.role,
+      });
+      navigate("/groups");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "로그인에 실패했습니다. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -43,28 +71,25 @@ export default function LoginPage({ onLogin }) {
 
           <form onSubmit={handleLogin}>
             <div className="auth-field">
-              <label className="field-label" htmlFor="login-email">이메일</label>
-              <input className="text-input" id="login-email" type="email" defaultValue="minjun@checkon.team" />
-            </div>
-            <div className="auth-field">
-              <div className="auth-field__label-row">
-                <label className="field-label" htmlFor="login-password">비밀번호</label>
-              </div>
-              <div className="password-input">
-                <input
-                  className="text-input"
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  defaultValue="checkon1234"
-                />
-                <button type="button" title="비밀번호 표시" onClick={() => setShowPassword((current) => !current)}>
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
+              <label className="field-label" htmlFor="login-nickname">닉네임</label>
+              <input
+                className="text-input"
+                id="login-nickname"
+                name="nickname"
+                placeholder="지아나"
+                autoComplete="username"
+                maxLength={30}
+                required
+                disabled={isSubmitting}
+              />
             </div>
 
-            <button className="auth-submit" type="submit">
-              로그인 <ArrowRight size={17} />
+            {errorMessage && (
+              <p className="auth-form__error" role="alert">{errorMessage}</p>
+            )}
+
+            <button className="auth-submit" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "로그인 중..." : <>로그인 <ArrowRight size={17} /></>}
             </button>
           </form>
 

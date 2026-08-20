@@ -222,6 +222,16 @@
   cursor: pointer;
 }
 
+.auth-form__error {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #f3c6c6;
+  border-radius: 8px;
+  background: #fdf2f2;
+  color: #c23a3a;
+  font-size: 12px;
+}
+
 .auth-submit {
   display: flex;
   width: 100%;
