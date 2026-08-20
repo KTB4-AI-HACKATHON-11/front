@@ -14,18 +14,67 @@ const fallbackItems = [
 ];
 const VERIFICATION_RULE_MAX_LENGTH = 300;
 const MAX_DUE_DATE = "2035-12-31T23:59";
+const DUE_DATE_PLACEHOLDER = "YYYY-MM-DD HH:mm";
+
+function formatDueDateInput(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 12);
+
+  if (digits.length <= 4) {
+    return digits;
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  }
+
+  if (digits.length <= 8) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+  }
+
+  if (digits.length <= 10) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)} ${digits.slice(8)}`;
+  }
+
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)} ${digits.slice(8, 10)}:${digits.slice(10, 12)}`;
+}
+
+function parseDueDate(value) {
+  const matched = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
+
+  if (!matched) {
+    return null;
+  }
+
+  const [, yearText, monthText, dayText, hourText, minuteText] = matched;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  const parsedDate = new Date(year, month - 1, day, hour, minute);
+
+  if (
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day ||
+    parsedDate.getHours() !== hour ||
+    parsedDate.getMinutes() !== minute
+  ) {
+    return null;
+  }
+
+  return parsedDate;
+}
 
 function isInvalidDueDate(value) {
-  if (!value) return true;
-
-  const selectedDate = new Date(value);
-  const now = new Date();
-  const maxDate = new Date(MAX_DUE_DATE);
-
-  if (Number.isNaN(selectedDate.getTime())) {
+  const selectedDate = parseDueDate(value);
+  if (!selectedDate) {
     return true;
   }
 
+  const now = new Date();
+  const maxDate = parseDueDate(MAX_DUE_DATE);
   return selectedDate < now || selectedDate > maxDate;
 }
 
@@ -98,13 +147,16 @@ export default function TaskVerificationPage({ user }) {
               <input
                 className="text-input"
                 id="task-due-date"
-                type="datetime-local"
+                type="text"
                 value={dueDate}
-                min={new Date().toISOString().slice(0, 16)}
-                max={MAX_DUE_DATE}
-                onChange={(event) => setDueDate(event.target.value)}
+                inputMode="numeric"
+                placeholder={DUE_DATE_PLACEHOLDER}
+                onChange={(event) => setDueDate(formatDueDateInput(event.target.value))}
                 required
               />
+              <small className="task-verification-assignment__hint">
+                숫자로 바로 입력할 수 있습니다. 예: `202608211530` 또는 `2026-08-21 15:30`
+              </small>
             </div>
           </div>
 

@@ -12,6 +12,7 @@
 .task-verification-assignment { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 20px 28px; border-bottom: 1px solid #eeeeF2; }
 .task-verification-assignment__field .text-input { height: 40px; }
 .task-verification-assignment__field select { appearance: auto; }
+.task-verification-assignment__hint { display: block; margin-top: 7px; color: #9696a1; font-size: 10px; line-height: 1.5; }
 .task-verification-items { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; background: #fafafd; }
 .task-verification-item { padding: 17px; }
 .task-verification-item__top { display: flex; align-items: center; gap: 9px; }
