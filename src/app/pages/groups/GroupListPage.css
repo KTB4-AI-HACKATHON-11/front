@@ -184,13 +184,6 @@
   gap: 10px;
 }
 
-.group-card__id {
-  display: block;
-  color: #9696a1;
-  font-size: 9px;
-  font-weight: 600;
-}
-
 .group-card__heading h2 {
   margin: 5px 0 0;
   color: #22222b;
@@ -222,6 +215,10 @@
   font-size: 11px;
   line-height: 1.55;
 }
+
+.group-card__meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 13px; color: #9696a1; font-size: 9px; }
+.group-card__role { order: 2; margin-left: auto; padding: 4px 7px; border-radius: 999px; background: #f0efff; color: #5d50db; font-weight: 600; }
+.group-card__role--worker { background: #eaf8f4; color: #16876f; }
 
 .group-create-card {
   display: flex;

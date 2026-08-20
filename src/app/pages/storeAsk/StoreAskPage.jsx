@@ -1,4 +1,4 @@
-import { CircleAlert, Send, Sparkles } from "lucide-react";
+import { CircleAlert, MessageSquarePlus, Send, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -20,6 +20,15 @@ const SUGGESTED_QUESTIONS = [
 // AI 백엔드 명세(POST /v1/knowledge/answer)의 question 필드 상한(1~200자)에 맞춥니다.
 const QUESTION_MAX_LENGTH = 200;
 
+function getConversationStorageKey(groupId) {
+  return `checkon:store-ask-conversation:${groupId}`;
+}
+
+function loadConversationId(groupId) {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(getConversationStorageKey(groupId)) || null;
+}
+
 let messageIdCounter = 0;
 function nextMessageId() {
   messageIdCounter += 1;
@@ -34,6 +43,7 @@ export default function StoreAskPage({ user }) {
   // 매장 정보 등록 여부를 확인하기 전까지는 힌트 배너를 띄우지 않도록 낙관적으로 true로 둡니다.
   const [hasStoreInfo, setHasStoreInfo] = useState(true);
   const [messages, setMessages] = useState([]);
+  const [conversationId, setConversationId] = useState(() => loadConversationId(groupId));
   const [question, setQuestion] = useState("");
   const [isAsking, setIsAsking] = useState(false);
   const listEndRef = useRef(null);
@@ -81,6 +91,19 @@ export default function StoreAskPage({ user }) {
     listEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
+  useEffect(() => {
+    setConversationId(loadConversationId(groupId));
+    setMessages([]);
+    setQuestion("");
+  }, [groupId]);
+
+  const startNewConversation = () => {
+    window.localStorage.removeItem(getConversationStorageKey(groupId));
+    setConversationId(null);
+    setMessages([]);
+    setQuestion("");
+  };
+
   const submitQuestion = async (rawQuestion) => {
     const trimmed = rawQuestion.trim();
     if (!trimmed || isAsking) return;
@@ -97,8 +120,12 @@ export default function StoreAskPage({ user }) {
     setIsAsking(true);
 
     try {
-      // TODO: askStoreQuestion은 아직 제품 백엔드에 구현되지 않은 API입니다(askApi.js 참고).
-      const result = await askStoreQuestion({ groupId, requesterId: user.memberId, question: trimmed });
+      const result = await askStoreQuestion({ conversationId, question: trimmed });
+      const nextConversationId = result?.conversationId ?? conversationId;
+      setConversationId(nextConversationId);
+      if (nextConversationId) {
+        window.localStorage.setItem(getConversationStorageKey(groupId), String(nextConversationId));
+      }
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantMessageId ? { ...message, status: "done", content: result?.answer ?? "" } : message
@@ -159,6 +186,11 @@ export default function StoreAskPage({ user }) {
       title="매장 AI에게 물어보기"
       description={`${currentGroup.name}에 등록된 매장 정보를 바탕으로 AI가 답변해요.`}
       backTo={`/groups/${groupId}`}
+      actions={messages.length > 0 ? (
+        <button className="secondary-button" type="button" onClick={startNewConversation}>
+          <MessageSquarePlus size={15} /> 새 대화
+        </button>
+      ) : null}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
         { label: currentGroup.name, path: `/groups/${groupId}` },

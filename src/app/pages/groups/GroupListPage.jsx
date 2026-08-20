@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
-import { getMyGroups } from "../../api/groupApi";
+import { getGroupDetail, getMyGroups } from "../../api/groupApi";
 import { getGroupTasks } from "../../api/taskApi";
 import { formatGroupId } from "../../lib/groupStorage";
 import GroupCard from "./components/GroupCard";
@@ -28,7 +28,15 @@ export default function GroupListPage({ user }) {
       try {
         const data = await getMyGroups({ memberId: user.memberId });
         const nextGroups = data ?? [];
-        if (!cancelled) setGroups(nextGroups);
+        const detailResults = await Promise.allSettled(
+          nextGroups.map((group) => getGroupDetail({ groupId: group.groupId, memberId: user.memberId }))
+        );
+        const enrichedGroups = nextGroups.map((group, index) => (
+          detailResults[index].status === "fulfilled"
+            ? { ...group, ...detailResults[index].value }
+            : group
+        ));
+        if (!cancelled) setGroups(enrichedGroups);
 
         const taskResults = await Promise.allSettled(
           nextGroups.map((group) => getGroupTasks({ groupId: group.groupId, requesterId: user.memberId }))

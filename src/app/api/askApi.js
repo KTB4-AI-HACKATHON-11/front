@@ -7,15 +7,14 @@ const ASK_TIMEOUT_MS = 65_000;
 
 /**
  * 매장 정보 기반 AI 질문
- * POST /api/v1/groups/{groupId}/ask
- * 그룹에 등록된 매장 정보만 근거로 답변을 생성합니다.
- * @param {{ groupId: string|number, requesterId: number, question: string }} params
- * @returns {Promise<{ answer: string }>}
+ * POST /api/v1/knowledge/answer
+ * @param {{ conversationId: string|number|null, question: string }} params
+ * @returns {Promise<{ conversationId: string|number, answer: string }>}
  */
-export function askStoreQuestion({ groupId, requesterId, question }) {
-  return apiRequest(`/groups/${groupId}/ask`, {
+export function askStoreQuestion({ conversationId, question }) {
+  return apiRequest("/knowledge/answer", {
     method: "POST",
-    body: { requesterId, question },
+    body: { conversationId, question },
     timeoutMs: ASK_TIMEOUT_MS,
   });
 }
