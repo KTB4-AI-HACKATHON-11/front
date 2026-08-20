@@ -13,8 +13,8 @@ export default function GroupJoinModal({ memberId, onClose, onJoined }) {
     if (isJoining) return;
 
     const normalizedId = groupId.trim();
-    if (!/^\d+$/.test(normalizedId)) {
-      setError("그룹 ID는 숫자로 입력해주세요.");
+    if (!/^\d{6}$/.test(normalizedId)) {
+      setError("그룹 ID는 6자리 숫자로 입력해주세요.");
       return;
     }
 
@@ -49,24 +49,29 @@ export default function GroupJoinModal({ memberId, onClose, onJoined }) {
         </div>
         <form onSubmit={handleSubmit}>
           <label className="field-label" htmlFor="join-group-id">그룹 ID</label>
+          <p className="group-join-modal__input-hint">6자리 숫자를 입력해주세요.</p>
           <input
             className={`text-input ${error ? "text-input--error" : ""}`}
             id="join-group-id"
             value={groupId}
             onChange={(event) => {
-              setGroupId(event.target.value.replace(/\D/g, ""));
+              setGroupId(event.target.value.replace(/\D/g, "").slice(0, 6));
               setError("");
             }}
-            placeholder="예: 1"
+            onBlur={() => {
+              if (groupId && groupId.length !== 6) setError("그룹 ID는 6자리 숫자로 입력해주세요.");
+            }}
+            placeholder="예: 123456"
             inputMode="numeric"
-            pattern="[0-9]+"
+            maxLength={6}
+            pattern="[0-9]{6}"
             autoFocus
             disabled={isJoining}
           />
           {error && <p className="group-join-modal__helper group-join-modal__helper--error">{error}</p>}
           <div className="group-join-modal__actions">
             <button className="ghost-button" type="button" onClick={onClose} disabled={isJoining}>취소</button>
-            <button className="primary-button" type="submit" disabled={isJoining || !groupId}>
+            <button className="primary-button" type="submit" disabled={isJoining || groupId.length !== 6}>
               {isJoining ? <><LoaderCircle className="group-join-modal__loader" size={15} /> 확인 중</> : <>참여하기 <ArrowRight size={15} /></>}
             </button>
           </div>

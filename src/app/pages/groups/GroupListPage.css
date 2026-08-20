@@ -8,7 +8,7 @@
 .group-join-modal__heading > span { color: #6255e7; font-size: 9px; font-weight: 700; }
 .group-join-modal__heading h2 { margin: 6px 0 4px; font-family: "Onest", sans-serif; font-size: 18px; }
 .group-join-modal__heading p { margin: 0; color: #90909c; font-size: 11px; }
-.group-join-modal__input-hint { margin: -15px 0 8px; color: #9696a1; font-size: 10px; }
+.group-join-modal__input-hint { margin: 4px 0 8px; color: #9696a1; font-size: 10px; }
 .group-join-modal__helper { margin: 7px 0 0; font-size: 10px; }
 .group-join-modal__helper--error { color: #d45e4a; }
 .text-input--error { border-color: #e2604a; }
