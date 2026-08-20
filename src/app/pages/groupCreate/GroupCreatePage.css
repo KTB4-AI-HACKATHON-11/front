@@ -47,6 +47,16 @@
   text-align: right;
 }
 
+.group-create-form__error {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #f3c6c6;
+  border-radius: 8px;
+  background: #fdf2f2;
+  color: #c23a3a;
+  font-size: 11px;
+}
+
 .group-create-form-actions {
   display: flex;
   justify-content: flex-end;
