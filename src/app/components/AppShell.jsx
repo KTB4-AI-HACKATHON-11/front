@@ -94,6 +94,20 @@ export default function AppShell({ user, children, title, description, backTo, a
 
     navigate(path);
   };
+  const handleLogout = async () => {
+    if (!confirmNavigation()) {
+      return;
+    }
+
+    try {
+      await logoutMember();
+    } catch {
+      // 서버 세션 만료 여부와 관계없이 로컬 로그인 정보는 정리합니다.
+    }
+    clearStoredUser();
+    // App 최상위의 메모리 상태까지 확실히 비우기 위해 로그인 화면을 새로 엽니다.
+    window.location.assign("/login");
+  };
 
   return (
     <div className="app-shell">
@@ -128,6 +142,10 @@ export default function AppShell({ user, children, title, description, backTo, a
               </button>
             );
           })}
+          <button className="app-sidebar__item app-sidebar__mobile-logout" onClick={handleLogout}>
+            <LogOut size={17} />
+            <span>로그아웃</span>
+          </button>
         </nav>
 
         <div className="app-sidebar__profile">
@@ -138,20 +156,7 @@ export default function AppShell({ user, children, title, description, backTo, a
           </div>
           <button
             className="icon-button"
-            onClick={async () => {
-              if (!confirmNavigation()) {
-                return;
-              }
-
-              try {
-                await logoutMember();
-              } catch {
-                // 서버 세션 만료 여부와 관계없이 로컬 로그인 정보는 정리합니다.
-              }
-              clearStoredUser();
-              // App 최상위의 메모리 상태까지 확실히 비우기 위해 로그인 화면을 새로 엽니다.
-              window.location.assign("/login");
-            }}
+            onClick={handleLogout}
             title="로그아웃"
           >
             <LogOut size={16} />

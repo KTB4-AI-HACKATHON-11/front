@@ -94,6 +94,10 @@
   font-weight: 600;
 }
 
+.app-sidebar__mobile-logout {
+  display: none;
+}
+
 .app-sidebar__profile {
   display: flex;
   align-items: center;
@@ -422,8 +426,12 @@
 
   .app-sidebar__nav {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 7px 8px;
+  }
+
+  .app-sidebar__mobile-logout {
+    display: flex;
   }
 
   .app-sidebar__item {
