@@ -18,6 +18,14 @@ const initialUser = {
   email: "minjun@checkon.team",
 };
 
+function RequireAuth({ user, children }) {
+  if (!user?.memberId) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
 export default function App() {
   const [user, setUser] = useState(() => loadStoredUser() ?? initialUser);
 
@@ -34,16 +42,16 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage onLogin={handleAuthenticated} />} />
         <Route path="/signup" element={<SignupPage onSignup={handleAuthenticated} />} />
-        <Route path="/groups" element={<GroupListPage user={user} />} />
-        <Route path="/groups/new" element={<GroupCreatePage user={user} />} />
-        <Route path="/groups/:groupId" element={<GroupDetailPage user={user} />} />
-        <Route path="/groups/:groupId/store-info" element={<StoreInfoPage user={user} />} />
-        <Route path="/groups/:groupId/ask" element={<StoreAskPage user={user} />} />
-        <Route path="/groups/:groupId/tasks/new" element={<TaskCreatePage user={user} />} />
-        <Route path="/tasks/:taskId" element={<TaskDetailPage user={user} />} />
+        <Route path="/groups" element={<RequireAuth user={user}><GroupListPage user={user} /></RequireAuth>} />
+        <Route path="/groups/new" element={<RequireAuth user={user}><GroupCreatePage user={user} /></RequireAuth>} />
+        <Route path="/groups/:groupId" element={<RequireAuth user={user}><GroupDetailPage user={user} /></RequireAuth>} />
+        <Route path="/groups/:groupId/store-info" element={<RequireAuth user={user}><StoreInfoPage user={user} /></RequireAuth>} />
+        <Route path="/groups/:groupId/ask" element={<RequireAuth user={user}><StoreAskPage user={user} /></RequireAuth>} />
+        <Route path="/groups/:groupId/tasks/new" element={<RequireAuth user={user}><TaskCreatePage user={user} /></RequireAuth>} />
+        <Route path="/tasks/:taskId" element={<RequireAuth user={user}><TaskDetailPage user={user} /></RequireAuth>} />
         <Route
           path="/tasks/:taskId/verify/photo/:subTaskId"
-          element={<PhotoVerificationPage user={user} />}
+          element={<RequireAuth user={user}><PhotoVerificationPage user={user} /></RequireAuth>}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
