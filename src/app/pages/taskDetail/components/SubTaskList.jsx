@@ -9,7 +9,16 @@ export default function SubTaskList({ items, completedIds, onToggle, onPhotoOpen
           <button
             className={`subtask-row ${completed ? "subtask-row--done" : ""} ${item.photo ? "subtask-row--photo" : ""}`}
             key={item.id}
-            onClick={() => item.photo && !completed ? onPhotoOpen(item.id) : onToggle(item.id)}
+            disabled={item.photo && completed}
+            aria-disabled={item.photo && completed}
+            onClick={() => {
+              if (item.photo && completed) return;
+              if (item.photo) {
+                onPhotoOpen(item.id);
+                return;
+              }
+              onToggle(item.id);
+            }}
           >
             <span className="subtask-row__number">{String(index + 1).padStart(2, "0")}</span>
             <span className="subtask-row__check">{completed && <Check size={14} strokeWidth={3} />}</span>

@@ -154,6 +154,19 @@ export default function PhotoVerificationPage({ user }) {
     );
   }
 
+  if (subTask.completed) {
+    return (
+      <StatusState
+        user={user}
+        type="task"
+        title="이미 수행 완료한 항목입니다"
+        description="완료된 사진 검증 항목은 다시 접근할 수 없습니다. 태스크 상세 화면에서 다른 항목을 확인해주세요."
+        actionLabel="태스크 상세로 돌아가기"
+        actionPath={`/tasks/${taskId}`}
+      />
+    );
+  }
+
   // 그룹 정보를 조회하는 API가 아직 없어, 태스크 상세 응답의 groupId로 mock 그룹 목록에서 이름만 보조적으로 찾습니다.
   const currentGroup = groups.find((group) => String(group.id) === String(taskDetail.groupId)) ?? groups[0];
 
