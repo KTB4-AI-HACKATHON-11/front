@@ -70,7 +70,7 @@ export default function SignupPage({ onSignup }) {
               className="text-input"
               id="signup-nickname"
               name="nickname"
-              placeholder="예: 민준"
+              placeholder="예: 지아나"
               maxLength={30}
               required
               disabled={isSubmitting}
