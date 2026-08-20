@@ -78,15 +78,43 @@ function isInvalidDueDate(value) {
   return selectedDate < now || selectedDate > maxDate;
 }
 
+function validateVerificationForm({ assigneeId, dueDate, items, enabled, rules }) {
+  if (!assigneeId) {
+    return "담당자를 선택해주세요.";
+  }
+
+  if (!dueDate.trim()) {
+    return "마감 일시를 입력해주세요.";
+  }
+
+  if (isInvalidDueDate(dueDate)) {
+    return "마감 일시는 현재 시각 이후부터 2035년 12월 31일까지 설정해주세요.";
+  }
+
+  const hasInvalidRule = items.some((item) => enabled[item] && !rules[item].trim());
+  if (hasInvalidRule) {
+    return "검증을 사용하는 항목은 검증 기준을 입력해주세요.";
+  }
+
+  const hasRuleTooLong = items.some((item) => enabled[item] && rules[item].trim().length > VERIFICATION_RULE_MAX_LENGTH);
+  if (hasRuleTooLong) {
+    return `검증 기준은 ${VERIFICATION_RULE_MAX_LENGTH}자 이하로 입력해주세요.`;
+  }
+
+  return "";
+}
+
 export default function TaskVerificationPage({ user }) {
   const navigate = useNavigate();
   const { state } = useLocation();
   const items = state?.items || fallbackItems;
   const workers = members.filter((member) => member.role === "WORKER");
-  const [assignee, setAssignee] = useState("");
+  const defaultAssigneeId = workers[0]?.id ?? "";
+  const [assigneeId, setAssigneeId] = useState(defaultAssigneeId);
   const [dueDate, setDueDate] = useState("");
   const [enabled, setEnabled] = useState(() => Object.fromEntries(items.map((item) => [item, true])));
   const [rules, setRules] = useState(() => Object.fromEntries(items.map((item) => [item, ""])));
+  const [errorMessage, setErrorMessage] = useState("");
 
   const toggleVerification = (item) => {
     setEnabled((current) => ({ ...current, [item]: !current[item] }));
@@ -98,28 +126,13 @@ export default function TaskVerificationPage({ user }) {
 
   const handleSave = (event) => {
     event.preventDefault();
-
-    if (!assignee) {
+    const nextErrorMessage = validateVerificationForm({ assigneeId, dueDate, items, enabled, rules });
+    if (nextErrorMessage) {
+      setErrorMessage(nextErrorMessage);
       return;
     }
 
-    if (isInvalidDueDate(dueDate)) {
-      window.alert("마감 일시는 현재 시각 이후부터 2035년 12월 31일까지 설정해주세요.");
-      return;
-    }
-
-    const hasInvalidRule = items.some((item) => enabled[item] && !rules[item].trim());
-    if (hasInvalidRule) {
-      window.alert("검증을 사용하는 항목은 검증 기준을 입력해주세요.");
-      return;
-    }
-
-    const hasRuleTooLong = items.some((item) => enabled[item] && rules[item].trim().length > VERIFICATION_RULE_MAX_LENGTH);
-    if (hasRuleTooLong) {
-      window.alert(`검증 기준은 ${VERIFICATION_RULE_MAX_LENGTH}자 이하로 입력해주세요.`);
-      return;
-    }
-
+    setErrorMessage("");
     // TODO: 담당 워커, 마감일시, TASK_ID, SUB_TASK_ID별 검증 설정을 서버에 저장해야 합니다.
     navigate("/tasks/task-101");
   };
@@ -136,11 +149,26 @@ export default function TaskVerificationPage({ user }) {
 
           <div className="task-verification-assignment">
             <div className="task-verification-assignment__field">
-              <label className="field-label" htmlFor="task-assignee">담당자<span className="field-label__required">*</span></label>
-              <select className="text-input" id="task-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} required>
-                <option value="" disabled>워커를 선택해주세요</option>
-                {workers.map((worker) => <option value={worker.name} key={worker.id}>{worker.name}</option>)}
-              </select>
+              <label className="field-label">담당자<span className="field-label__required">*</span></label>
+              <div className="task-verification-assignees" role="radiogroup" aria-label="담당자 선택">
+                {workers.map((worker) => (
+                  <button
+                    key={worker.id}
+                    type="button"
+                    className={`task-verification-assignee ${assigneeId === worker.id ? "is-selected" : ""}`}
+                    onClick={() => setAssigneeId(worker.id)}
+                    aria-pressed={assigneeId === worker.id}
+                  >
+                    <span className={`member-avatar member-avatar--${worker.color}`}>{worker.initial}</span>
+                    <strong>{worker.name}</strong>
+                    <small>알바</small>
+                  </button>
+                ))}
+              </div>
+              <div className="task-verification-assignment__meta">
+                <span>체크리스트를 실제로 수행할 멤버를 선택해주세요.</span>
+                <strong>{workers.length}명</strong>
+              </div>
             </div>
             <div className="task-verification-assignment__field">
               <label className="field-label" htmlFor="task-due-date">마감일시<span className="field-label__required">*</span></label>
@@ -151,14 +179,23 @@ export default function TaskVerificationPage({ user }) {
                 value={dueDate}
                 inputMode="numeric"
                 placeholder={DUE_DATE_PLACEHOLDER}
-                onChange={(event) => setDueDate(formatDueDateInput(event.target.value))}
+                onChange={(event) => {
+                  setDueDate(formatDueDateInput(event.target.value));
+                  if (errorMessage) {
+                    setErrorMessage("");
+                  }
+                }}
                 required
               />
               <small className="task-verification-assignment__hint">
-                숫자로 바로 입력할 수 있습니다. 예: `202608211530` 또는 `2026-08-21 15:30`
+                숫자로 바로 입력할 수 있습니다. 예: 202608211530 또는 2026-08-21 15:30
               </small>
             </div>
           </div>
+
+          {errorMessage && (
+            <p className="task-verification-form__error" role="alert">{errorMessage}</p>
+          )}
 
           <div className="task-verification-items">
             {items.map((item, index) => (
@@ -186,12 +223,20 @@ export default function TaskVerificationPage({ user }) {
                       className="text-area"
                       id={`verification-rule-${index}`}
                       value={rules[item]}
-                      onChange={(event) => updateRule(item, event.target.value)}
+                      onChange={(event) => {
+                        updateRule(item, event.target.value);
+                        if (errorMessage) {
+                          setErrorMessage("");
+                        }
+                      }}
                       placeholder="예: 입구 유리문에 얼룩이 없어야 합니다."
                       maxLength={VERIFICATION_RULE_MAX_LENGTH}
                       required
                     />
-                    <small>{rules[item].length}/{VERIFICATION_RULE_MAX_LENGTH}</small>
+                    <div className="task-verification-item__meta">
+                      <span>현장에서 확인할 수 있게 짧고 구체적으로 적어주세요.</span>
+                      <strong>{rules[item].length}/{VERIFICATION_RULE_MAX_LENGTH}</strong>
+                    </div>
                   </div>
                 ) : (
                   <div className="task-verification-item__disabled"><ShieldOff size={16} /><span>검증 없음</span></div>

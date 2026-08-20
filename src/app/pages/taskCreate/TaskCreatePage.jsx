@@ -284,7 +284,7 @@ export default function TaskCreatePage({ user }) {
                   disabled={isGenerating}
                 />
                 <div className="task-create-field__meta">
-                  <span>간결하게 핵심만 입력해주세요.</span>
+                  <span>업무 내용을 간단히 작성해주세요.</span>
                   <strong>{title.length}/{TASK_TITLE_MAX_LENGTH}</strong>
                 </div>
               </div>
@@ -304,7 +304,7 @@ export default function TaskCreatePage({ user }) {
                   <span><Sparkles size={12} /> AI가 실행 가능한 목록으로 나눠요</span>
                 </div>
                 <div className="task-create-field__meta">
-                  <span>최대 {TASK_MESSAGE_MAX_LENGTH}자까지 입력할 수 있습니다.</span>
+                  <span>필요한 작업을 구체적으로 설명해주세요.</span>
                   <strong>{message.length}/{TASK_MESSAGE_MAX_LENGTH}</strong>
                 </div>
               </div>
