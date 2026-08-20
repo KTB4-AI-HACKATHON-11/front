@@ -8,10 +8,72 @@ const navigation = [
   { label: "내 그룹", icon: LayoutGrid, path: "/groups" },
 ];
 
+function buildBreadcrumbs(pathname, title) {
+  if (pathname === "/groups") {
+    return [{ label: "내 그룹", path: "/groups", current: true }];
+  }
+
+  if (pathname === "/groups/new") {
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: "새 그룹", path: "/groups/new", current: true },
+    ];
+  }
+
+  const groupTaskCreateMatch = pathname.match(/^\/groups\/([^/]+)\/tasks\/new$/);
+  if (groupTaskCreateMatch) {
+    const [, groupId] = groupTaskCreateMatch;
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: "그룹 상세", path: `/groups/${groupId}` },
+      { label: "새 태스크", path: pathname, current: true },
+    ];
+  }
+
+  const groupDetailMatch = pathname.match(/^\/groups\/([^/]+)$/);
+  if (groupDetailMatch) {
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: title || "그룹 상세", path: pathname, current: true },
+    ];
+  }
+
+  const photoVerificationMatch = pathname.match(/^\/tasks\/([^/]+)\/verify\/photo$/);
+  if (photoVerificationMatch) {
+    const [, taskId] = photoVerificationMatch;
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: "태스크 상세", path: `/tasks/${taskId}` },
+      { label: "사진 검증", path: pathname, current: true },
+    ];
+  }
+
+  const taskVerificationMatch = pathname.match(/^\/tasks\/([^/]+)\/verification$/);
+  if (taskVerificationMatch) {
+    const [, taskId] = taskVerificationMatch;
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: "태스크 상세", path: `/tasks/${taskId}` },
+      { label: "검증 설정", path: pathname, current: true },
+    ];
+  }
+
+  const taskDetailMatch = pathname.match(/^\/tasks\/([^/]+)$/);
+  if (taskDetailMatch) {
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: title || "태스크 상세", path: pathname, current: true },
+    ];
+  }
+
+  return title ? [{ label: title, path: pathname, current: true }] : [];
+}
+
 export default function AppShell({ user, children, title, description, backTo, actions }) {
   const navigate = useNavigate();
   const location = useLocation();
   const brandPath = location.pathname.startsWith("/groups") || location.pathname.startsWith("/tasks") ? "/groups" : "/";
+  const breadcrumbs = buildBreadcrumbs(location.pathname, title);
 
   return (
     <div className="app-shell">
@@ -65,7 +127,21 @@ export default function AppShell({ user, children, title, description, backTo, a
                 <ChevronLeft size={19} />
               </button>
             )}
-            <div>
+            <div className="app-header__title-copy">
+              {breadcrumbs.length > 0 && (
+                <nav className="app-breadcrumb" aria-label="breadcrumb">
+                  {breadcrumbs.map((item, index) => (
+                    <span className="app-breadcrumb__item" key={`${item.path}-${item.label}`}>
+                      {item.current ? (
+                        <strong>{item.label}</strong>
+                      ) : (
+                        <Link to={item.path}>{item.label}</Link>
+                      )}
+                      {index < breadcrumbs.length - 1 ? <span className="app-breadcrumb__separator">/</span> : null}
+                    </span>
+                  ))}
+                </nav>
+              )}
               <h1>{title}</h1>
               {description && <p>{description}</p>}
             </div>
