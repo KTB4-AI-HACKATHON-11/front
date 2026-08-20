@@ -21,14 +21,6 @@ const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
 // 끝났으니, 실제 배포 전에는 이 값을 true로 되돌려 다시 켜야 합니다.
 const ENABLE_UPLOAD_DATE_CHECK = false;
 
-function getDisplayMatchScore(status) {
-  if (status === "PASS") {
-    return Math.floor(Math.random() * 21) + 80;
-  }
-
-  return Math.floor(Math.random() * 80);
-}
-
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,7 +34,7 @@ export default function PhotoVerificationPage({ user }) {
   const [isCheckingUpload, setIsCheckingUpload] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
-  const [verificationResult, setVerificationResult] = useState(null); // { success, matchScore, threshold, reason }
+  const [verificationResult, setVerificationResult] = useState(null); // { success, status, reason, fix }
   const [failCount, setFailCount] = useState(0);
   const [reviewRequested, setReviewRequested] = useState(false);
   const capturedImageRef = useRef(capturedImage);
@@ -185,7 +177,6 @@ export default function PhotoVerificationPage({ user }) {
       setVerificationResult({
         ...result,
         success: result?.status === "PASS",
-        matchScore: result?.matchScore ?? getDisplayMatchScore(result?.status),
       });
       if (result?.status === "RETAKE") setFailCount((current) => Math.max(current + 1, result.attemptNumber ?? 0));
     } catch (error) {
@@ -278,7 +269,6 @@ export default function PhotoVerificationPage({ user }) {
             <ReviewRequested onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })} />
           ) : verificationResult?.success ? (
             <SuccessResult
-              matchScore={verificationResult.matchScore}
               description={subTask.instruction ? `${subTask.instruction} 기준으로 확인되었습니다.` : undefined}
               onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId, verifiedChecklistId: subTaskId } })}
             />
@@ -287,8 +277,6 @@ export default function PhotoVerificationPage({ user }) {
               reason={verificationResult.reason}
               fix={verificationResult.fix}
               status={verificationResult.status}
-              matchScore={verificationResult.matchScore}
-              threshold={verificationResult.threshold}
               attemptCount={failCount}
               canRequestReview={canRequestReview}
               onRetake={handleRetake}

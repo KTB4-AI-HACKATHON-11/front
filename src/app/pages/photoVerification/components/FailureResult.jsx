@@ -2,8 +2,6 @@ import { AlertTriangle, RotateCcw, UserCheck } from "lucide-react";
 
 export default function FailureResult({
   reason,
-  matchScore,
-  threshold,
   attemptCount,
   canRequestReview,
   onRetake,
@@ -15,17 +13,8 @@ export default function FailureResult({
     <div className="photo-failure">
       <span className="photo-failure__icon"><AlertTriangle size={34} /></span>
       <span className="photo-failure__eyebrow">{status === "DELAYED" ? "VERIFICATION DELAYED" : "VERIFICATION FAILED"}</span>
-      <h2>{status === "DELAYED" ? "검증이 지연되고 있어요" : "검증 기준에 맞지 않아요"}</h2>
+      <h2>{status === "DELAYED" ? "검증이 지연되고 있어요" : "검증에 탈락했어요"}</h2>
       <p>{[reason, fix].filter(Boolean).join(" ") || "제출한 사진이 검증 기준과 일치하지 않았어요."}</p>
-      {typeof matchScore === "number" && (
-        <div className="photo-failure__score">
-          <span>AI 검증 일치도</span>
-          <strong>{matchScore}%</strong>
-        </div>
-      )}
-      {typeof threshold === "number" && (
-        <small className="photo-failure__threshold">통과 기준 {threshold}% 이상</small>
-      )}
       <div className="photo-failure__actions">
         <button className="primary-button" type="button" onClick={onRetake}>
           <RotateCcw size={15} /> 다시 촬영하기
