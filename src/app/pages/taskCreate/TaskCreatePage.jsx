@@ -1,4 +1,4 @@
-import { ArrowRight, Camera, Save, Sparkles, X } from "lucide-react";
+import { ArrowRight, Camera, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBeforeUnload, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -307,6 +307,41 @@ export default function TaskCreatePage({ user }) {
     }
   };
 
+  const handleAddChecklistItem = () => {
+    if (checklistDraft.length >= TASK_CHECKLIST_MAX_LENGTH) {
+      setSaveError(`체크리스트는 최대 ${TASK_CHECKLIST_MAX_LENGTH}개까지 등록할 수 있습니다.`);
+      return;
+    }
+
+    const nextSequence = Math.max(0, ...checklistDraft.map((item) => Number(item.sequence) || 0)) + 1;
+    setChecklistDraft((current) => [
+      ...current,
+      {
+        sequence: nextSequence,
+        title: "",
+        instruction: "",
+        completionType: "CHECK",
+        rule: "",
+      },
+    ]);
+    setSaveError("");
+  };
+
+  const handleRemoveChecklistItem = (sequence) => {
+    setChecklistDraft((current) => current.filter((item) => item.sequence !== sequence));
+    setReferencePhotos((current) => {
+      if (!current[sequence]) {
+        return current;
+      }
+
+      URL.revokeObjectURL(current[sequence].previewUrl);
+      const next = { ...current };
+      delete next[sequence];
+      return next;
+    });
+    setSaveError("");
+  };
+
   const handleToggleCompletionType = (sequence) => {
     setChecklistDraft((current) =>
       current.map((item) =>
@@ -355,6 +390,11 @@ export default function TaskCreatePage({ user }) {
     const trimmedTaskTitle = taskTitleDraft.trim();
     if (!trimmedTaskTitle) {
       setSaveError("태스크 제목을 입력해주세요.");
+      return;
+    }
+
+    if (checklistDraft.length === 0) {
+      setSaveError("체크리스트 항목을 1개 이상 추가해주세요.");
       return;
     }
 
@@ -492,6 +532,16 @@ export default function TaskCreatePage({ user }) {
                       <span className="task-create-checklist__toggle-track"><span className="task-create-checklist__toggle-thumb" /></span>
                       {isPhoto ? "사진 검증" : "체크 검증"}
                     </button>
+                    <button
+                      type="button"
+                      className="task-create-checklist__remove"
+                      onClick={() => handleRemoveChecklistItem(item.sequence)}
+                      disabled={isSaving}
+                      aria-label={`체크리스트 ${index + 1} 삭제`}
+                      title="체크리스트 삭제"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                   <textarea
                     className="task-create-checklist__instruction-input"
@@ -542,6 +592,15 @@ export default function TaskCreatePage({ user }) {
               );
             })}
           </ul>
+
+          <button
+            className="task-create-checklist__add"
+            type="button"
+            onClick={handleAddChecklistItem}
+            disabled={isSaving || checklistDraft.length >= TASK_CHECKLIST_MAX_LENGTH}
+          >
+            <Plus size={14} /> 체크리스트 추가
+          </button>
 
           {saveError && (
             <p className="task-create-form__error" role="alert">{saveError}</p>
