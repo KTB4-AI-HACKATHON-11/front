@@ -72,6 +72,7 @@ export default function TaskDetailPage({ user }) {
   const currentGroupId = location.state?.groupId ?? taskDetail?.groupId;
   const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
   const subTasks = (taskDetail?.checklists ?? []).map(toSubTask);
+  const canPerform = taskDetail?.workerId != null && String(taskDetail.workerId) === String(user?.memberId);
   const currentTask = taskDetail && {
     title: taskDetail.title,
     assignee: taskDetail.workerNickname || "담당자 없음",
@@ -79,6 +80,11 @@ export default function TaskDetailPage({ user }) {
   };
 
   const handleToggle = async (subTaskId) => {
+    if (!canPerform) {
+      setErrorMessage("이 태스크의 담당 워커만 수행 여부를 변경할 수 있습니다.");
+      return;
+    }
+
     const willComplete = !completedIds.includes(subTaskId);
     setErrorMessage("");
     // 낙관적 업데이트: 응답을 기다리지 않고 먼저 화면에 반영하고, 실패하면 되돌립니다.
@@ -130,6 +136,11 @@ export default function TaskDetailPage({ user }) {
   const selectedSubTask = subTasks.find((item) => item.id === selectedSubTaskId) ?? subTasks[0] ?? null;
 
   const openPhotoVerification = (subTaskId) => {
+    if (!canPerform) {
+      setErrorMessage("이 태스크의 담당 워커만 사진 검증을 수행할 수 있습니다.");
+      return;
+    }
+
     const targetSubTaskId = subTaskId ?? selectedSubTask?.id;
     if (!targetSubTaskId) return;
     navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`, { state: { groupId: currentGroupId } });
@@ -196,6 +207,7 @@ export default function TaskDetailPage({ user }) {
             onSelect={setSelectedSubTaskId}
             onToggle={handleToggle}
             onPhotoOpen={openPhotoVerification}
+            canPerform={canPerform}
           />
           {errorMessage && (
             <p className="task-detail-content__error" role="alert">{errorMessage}</p>

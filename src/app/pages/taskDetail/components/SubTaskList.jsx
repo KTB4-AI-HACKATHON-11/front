@@ -1,6 +1,6 @@
 import { Camera, Check, ChevronRight } from "lucide-react";
 
-export default function SubTaskList({ items, completedIds, selectedId, onToggle, onPhotoOpen, onSelect }) {
+export default function SubTaskList({ items, completedIds, selectedId, onToggle, onPhotoOpen, onSelect, canPerform }) {
   return (
     <div className="subtask-list">
       {items.map((item, index) => {
@@ -13,7 +13,7 @@ export default function SubTaskList({ items, completedIds, selectedId, onToggle,
             <button
               className="subtask-row__check-button"
               type="button"
-              disabled={item.photo && completed}
+              disabled={!canPerform || (item.photo && completed)}
               onClick={() => item.photo ? onPhotoOpen(item.id) : onToggle(item.id)}
               aria-label={item.photo ? `${item.title} 사진 검증` : `${item.title} 수행 여부 변경`}
             >

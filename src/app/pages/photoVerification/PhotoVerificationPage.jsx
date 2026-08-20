@@ -216,6 +216,10 @@ export default function PhotoVerificationPage({ user }) {
     );
   }
 
+  if (taskDetail.workerId == null || String(taskDetail.workerId) !== String(user.memberId)) {
+    return <StatusState user={user} type="access" description="이 태스크의 담당 워커만 사진 검증을 수행할 수 있습니다." />;
+  }
+
   const subTasks = (taskDetail.checklists ?? []).map(toSubTask);
   const subTaskIndex = subTasks.findIndex((item) => item.id === String(subTaskId));
   const subTask = subTaskIndex >= 0 ? subTasks[subTaskIndex] : null;
