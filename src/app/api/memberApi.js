@@ -1,5 +1,5 @@
 // 회원 관련 API
-import { apiRequest, cachedApiRequest, clearApiCache } from "./client";
+import { apiMutation, apiRequest, cachedApiRequest, CACHE_TTL_MS, clearApiCache } from "./client";
 
 /**
  * 회원가입
@@ -10,13 +10,11 @@ import { apiRequest, cachedApiRequest, clearApiCache } from "./client";
  *   400 - 요청 형식 오류 (닉네임/역할 누락 또는 형식 불일치)
  *   409 - 이미 사용 중인 닉네임
  */
-export async function signupMember({ nickname }) {
-  const result = await apiRequest("/members", {
+export function signupMember({ nickname }) {
+  return apiMutation("/members", {
     method: "POST",
     body: { nickname },
   });
-  clearApiCache();
-  return result;
 }
 
 /**
@@ -25,13 +23,11 @@ export async function signupMember({ nickname }) {
  * @param {{ nickname: string }} params
  * @returns {Promise<{ memberId: number, nickname: string, role: string }>}
  */
-export async function loginMember({ nickname }) {
-  const result = await apiRequest("/members/login", {
+export function loginMember({ nickname }) {
+  return apiMutation("/members/login", {
     method: "POST",
     body: { nickname },
   });
-  clearApiCache();
-  return result;
 }
 
 export function getCurrentMember() {
@@ -54,5 +50,8 @@ export async function logoutMember() {
  * @returns {Promise<Array<{ memberId: number, nickname: string, role: "MANAGER"|"WORKER" }>>}
  */
 export function getGroupMembers({ groupId, requesterId }) {
-  return cachedApiRequest(`/groups/${groupId}/members?requesterId=${requesterId}`, 30_000);
+  return cachedApiRequest(
+    `/groups/${groupId}/members?requesterId=${requesterId}`,
+    CACHE_TTL_MS.STANDARD
+  );
 }

@@ -1,5 +1,5 @@
 // 그룹 관련 API
-import { apiRequest, cachedApiRequest, clearApiCache } from "./client";
+import { apiMutation, cachedApiRequest, CACHE_TTL_MS } from "./client";
 
 /**
  * 그룹 생성
@@ -7,13 +7,11 @@ import { apiRequest, cachedApiRequest, clearApiCache } from "./client";
  * @param {{ managerId: number, name: string, description: string }} params
  * @returns {Promise<{ groupId: number, name: string, description: string }>}
  */
-export async function createGroup({ managerId, name, description }) {
-  const result = await apiRequest("/groups", {
+export function createGroup({ managerId, name, description }) {
+  return apiMutation("/groups", {
     method: "POST",
     body: { managerId, name, description },
   });
-  clearApiCache();
-  return result;
 }
 
 /**
@@ -23,13 +21,11 @@ export async function createGroup({ managerId, name, description }) {
  * @returns {Promise<{ groupId: number, name: string, description: string }>}
  * 실패 응답: 404 (존재하지 않는 그룹 ID), 409 (이미 가입한 그룹) → ApiError로 던져짐
  */
-export async function joinGroup({ memberId, groupId }) {
-  const result = await apiRequest("/groups/join", {
+export function joinGroup({ memberId, groupId }) {
+  return apiMutation("/groups/join", {
     method: "POST",
     body: { memberId, groupId },
   });
-  clearApiCache();
-  return result;
 }
 
 /**
@@ -40,7 +36,10 @@ export async function joinGroup({ memberId, groupId }) {
  * @returns {Promise<Array<{ groupId: number, name: string, description: string }>>}
  */
 export function getMyGroups({ memberId, offset = 0, limit = 20 }) {
-  return cachedApiRequest(`/members/${memberId}/groups?offset=${offset}&limit=${limit}`, 30_000);
+  return cachedApiRequest(
+    `/members/${memberId}/groups?offset=${offset}&limit=${limit}`,
+    CACHE_TTL_MS.STANDARD
+  );
 }
 
 /**
@@ -52,5 +51,5 @@ export function getMyGroups({ memberId, offset = 0, limit = 20 }) {
  * 실패 응답: 404 (존재하지 않는 그룹 또는 멤버가 아닌 경우) → ApiError로 던져짐
  */
 export function getGroupDetail({ groupId, memberId }) {
-  return cachedApiRequest(`/groups/${groupId}?memberId=${memberId}`, 30_000);
+  return cachedApiRequest(`/groups/${groupId}?memberId=${memberId}`, CACHE_TTL_MS.STANDARD);
 }

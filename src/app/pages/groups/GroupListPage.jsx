@@ -22,6 +22,38 @@ export default function GroupListPage({ user }) {
   useEffect(() => {
     let cancelled = false;
 
+    async function enrichGroupCards(nextGroups) {
+      const results = await Promise.allSettled(
+        nextGroups.map((group) =>
+          getGroupDetail({ groupId: group.groupId, memberId: user.memberId })
+        )
+      );
+      if (cancelled) return;
+
+      setGroups(
+        nextGroups.map((group, index) =>
+          results[index].status === "fulfilled"
+            ? { ...group, ...results[index].value }
+            : group
+        )
+      );
+    }
+
+    async function loadTaskStats(nextGroups) {
+      const results = await Promise.allSettled(
+        nextGroups.map((group) =>
+          getGroupTasks({ groupId: group.groupId, requesterId: user.memberId })
+        )
+      );
+      if (cancelled || results.some((result) => result.status === "rejected")) return;
+
+      const tasks = results.flatMap((result) => result.value?.items ?? []);
+      setTaskStats({
+        active: tasks.filter((task) => task.status !== "COMPLETED").length,
+        completedToday: 0,
+      });
+    }
+
     async function loadGroups() {
       setIsLoading(true);
       setErrorMessage("");
@@ -29,35 +61,13 @@ export default function GroupListPage({ user }) {
       try {
         const data = await getMyGroups({ memberId: user.memberId });
         const nextGroups = data ?? [];
-        const detailResultsPromise = Promise.allSettled(
-          nextGroups.map((group) => getGroupDetail({ groupId: group.groupId, memberId: user.memberId }))
-        );
-        const taskResultsPromise = Promise.allSettled(
-          nextGroups.map((group) => getGroupTasks({ groupId: group.groupId, requesterId: user.memberId }))
-        );
+        if (cancelled) return;
 
-        if (!cancelled) {
-          // 목록 API에 이미 이름과 설명이 있으므로 먼저 표시하고, 통계는 백그라운드에서 보강합니다.
-          setGroups(nextGroups);
-          setIsLoading(false);
-        }
-
-        const [detailResults, taskResults] = await Promise.all([detailResultsPromise, taskResultsPromise]);
-        const enrichedGroups = nextGroups.map((group, index) => (
-          detailResults[index].status === "fulfilled"
-            ? { ...group, ...detailResults[index].value }
-            : group
-        ));
-        if (!cancelled) setGroups(enrichedGroups);
-
-        if (!cancelled && taskResults.every((result) => result.status === "fulfilled")) {
-          const allTasks = taskResults.flatMap((result) => result.value?.items ?? []);
-
-          setTaskStats({
-            active: allTasks.filter((task) => task.status !== "COMPLETED").length,
-            completedToday: 0,
-          });
-        }
+        // 목록을 즉시 표시하고 카드 상세와 태스크 통계는 서로 기다리지 않고 보강합니다.
+        setGroups(nextGroups);
+        setIsLoading(false);
+        void enrichGroupCards(nextGroups);
+        void loadTaskStats(nextGroups);
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(

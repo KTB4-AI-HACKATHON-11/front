@@ -5,6 +5,11 @@
 
 // export const API_BASE_URL = "http://localhost:8080/api/v1";
 const API_BASE_URL = "https://api.checkon.cloud/api/v1";
+export const CACHE_TTL_MS = Object.freeze({
+  FAST_CHANGING: 10_000,
+  STANDARD: 30_000,
+});
+
 const responseCache = new Map();
 const inFlightRequests = new Map();
 let cacheVersion = 0;
@@ -71,7 +76,7 @@ export async function apiRequest(path, options = {}) {
   return payload?.data ?? null;
 }
 
-export function cachedApiRequest(path, ttlMs = 20_000) {
+export function cachedApiRequest(path, ttlMs = CACHE_TTL_MS.STANDARD) {
   const now = Date.now();
   const cached = responseCache.get(path);
   if (cached && cached.expiresAt > now) {
@@ -90,10 +95,19 @@ export function cachedApiRequest(path, ttlMs = 20_000) {
       return data;
     })
     .finally(() => {
-      inFlightRequests.delete(path);
+      // 캐시 무효화 뒤 같은 경로로 시작한 새 요청을 이전 요청이 지우지 않도록 합니다.
+      if (inFlightRequests.get(path) === request) {
+        inFlightRequests.delete(path);
+      }
     });
   inFlightRequests.set(path, request);
   return request;
+}
+
+export async function apiMutation(path, options) {
+  const data = await apiRequest(path, options);
+  clearApiCache();
+  return data;
 }
 
 export function clearApiCache() {

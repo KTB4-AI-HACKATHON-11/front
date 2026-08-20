@@ -33,30 +33,13 @@ export default function GroupDetailPage({ user }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadGroupDetailAndMembers() {
-      setIsLoading(true);
-      setIsMembersLoading(true);
-      setIsTasksLoading(true);
-      setErrorMessage("");
-      setMembersErrorMessage("");
-      setTasksErrorMessage("");
-      const settle = (promise) => promise.then(
-        (value) => ({ status: "fulfilled", value }),
-        (reason) => ({ status: "rejected", reason })
-      );
-      // 세 요청을 동시에 시작하되, 화면의 뼈대가 되는 그룹 상세만 도착하면 먼저 렌더링합니다.
-      const groupPromise = settle(getGroupDetail({ groupId, memberId: user.memberId }));
-      const membersPromise = settle(getGroupMembers({ groupId, requesterId: user.memberId }));
-      const taskPromise = settle(getGroupTasks({ groupId, requesterId: user.memberId }));
-      const groupResult = await groupPromise;
-
-      if (cancelled) return;
-
-      if (groupResult.status === "fulfilled") {
-        setGroupDetail(groupResult.value);
-      } else {
+    async function loadGroup() {
+      try {
+        const detail = await getGroupDetail({ groupId, memberId: user.memberId });
+        if (!cancelled) setGroupDetail(detail);
+      } catch (error) {
+        if (cancelled) return;
         setGroupDetail(null);
-        const error = groupResult.reason;
         if (error instanceof ApiError) {
           setErrorMessage(error.message);
           // 403: groupId는 존재하지만 memberId가 이 그룹 멤버가 아닌 경우 → 접근 권한 없음 화면
@@ -66,38 +49,59 @@ export default function GroupDetailPage({ user }) {
           setErrorMessage("그룹 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.");
           setErrorType("group");
         }
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-      setIsLoading(false);
-
-      const [membersResult, taskResult] = await Promise.all([membersPromise, taskPromise]);
-      if (cancelled) return;
-
-      if (membersResult.status === "fulfilled") {
-        setGroupMembers(toDisplayMembers(membersResult.value));
-      } else {
-        setGroupMembers([]);
-        setMembersErrorMessage(
-          membersResult.reason instanceof ApiError
-            ? membersResult.reason.message
-            : "멤버 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
-        );
-      }
-      setIsMembersLoading(false);
-
-      if (taskResult.status === "fulfilled") {
-        setGroupTasks((taskResult.value?.items ?? []).map(toTaskCard));
-      } else {
-        setGroupTasks([]);
-        setTasksErrorMessage(
-          taskResult.reason instanceof ApiError
-            ? taskResult.reason.message
-            : "태스크 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
-        );
-      }
-      setIsTasksLoading(false);
     }
 
-    loadGroupDetailAndMembers();
+    async function loadMembers() {
+      try {
+        const members = await getGroupMembers({ groupId, requesterId: user.memberId });
+        if (!cancelled) setGroupMembers(toDisplayMembers(members));
+      } catch (error) {
+        if (cancelled) return;
+        setGroupMembers([]);
+        setMembersErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "멤버 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+        );
+      } finally {
+        if (!cancelled) setIsMembersLoading(false);
+      }
+    }
+
+    async function loadTasks() {
+      try {
+        const tasks = await getGroupTasks({ groupId, requesterId: user.memberId });
+        if (!cancelled) setGroupTasks((tasks?.items ?? []).map(toTaskCard));
+      } catch (error) {
+        if (cancelled) return;
+        setGroupTasks([]);
+        setTasksErrorMessage(
+          error instanceof ApiError
+            ? error.message
+            : "태스크 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+        );
+      } finally {
+        if (!cancelled) setIsTasksLoading(false);
+      }
+    }
+
+    setGroupDetail(null);
+    setGroupMembers([]);
+    setGroupTasks([]);
+    setIsLoading(true);
+    setIsMembersLoading(true);
+    setIsTasksLoading(true);
+    setErrorMessage("");
+    setMembersErrorMessage("");
+    setTasksErrorMessage("");
+
+    // 각 영역을 독립적으로 갱신해 느린 응답이 다른 영역의 표시를 막지 않도록 합니다.
+    void loadGroup();
+    void loadMembers();
+    void loadTasks();
     return () => {
       cancelled = true;
     };
