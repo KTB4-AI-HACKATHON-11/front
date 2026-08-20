@@ -6,9 +6,11 @@ import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getGroupDetail } from "../../api/groupApi";
 import { getGroupMembers } from "../../api/memberApi";
-import { groups, tasks } from "../../data/mockData";
+import { getGroupTasks } from "../../api/taskApi";
+import { groups } from "../../data/mockData";
 import { mergeGroups } from "../../lib/groupStorage";
 import { toDisplayMembers } from "../../lib/memberDisplay";
+import { toTaskCard } from "../../lib/taskDisplay";
 import GroupInviteModal from "./components/GroupInviteModal";
 import MemberList from "./components/MemberList";
 import TaskCard from "./components/TaskCard";
@@ -21,6 +23,7 @@ export default function GroupDetailPage({ user }) {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [groupDetail, setGroupDetail] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
+  const [groupTasks, setGroupTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorType, setErrorType] = useState("group");
@@ -33,9 +36,10 @@ export default function GroupDetailPage({ user }) {
       setErrorMessage("");
       // 그룹 상세와 멤버 목록은 서로 다른 API라 하나가 실패해도 나머지는 반영되도록
       // allSettled로 독립적으로 처리합니다.
-      const [groupResult, membersResult] = await Promise.allSettled([
+      const [groupResult, membersResult, taskResult] = await Promise.allSettled([
         getGroupDetail({ groupId, memberId: user.memberId }),
         getGroupMembers({ groupId, requesterId: user.memberId }),
+        getGroupTasks({ groupId, requesterId: user.memberId }),
       ]);
 
       if (cancelled) return;
@@ -57,6 +61,11 @@ export default function GroupDetailPage({ user }) {
       }
 
       setGroupMembers(membersResult.status === "fulfilled" ? toDisplayMembers(membersResult.value) : []);
+      setGroupTasks(
+        taskResult.status === "fulfilled"
+          ? (taskResult.value?.items ?? []).map(toTaskCard)
+          : []
+      );
       setIsLoading(false);
     }
 
@@ -101,8 +110,6 @@ export default function GroupDetailPage({ user }) {
   const role = groupDetail.role ?? mockGroupInfo?.currentUserRole;
   const canManage = role === "MANAGER";
   const memberCount = groupMembers.length || groupDetail.memberCount || mockGroupInfo?.memberCount;
-  const groupTasks = groups.some((group) => group.id === groupId) ? tasks : [];
-
   return (
     <AppShell
       user={user}

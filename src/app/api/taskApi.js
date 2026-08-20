@@ -2,6 +2,24 @@
 import { apiRequest } from "./client";
 
 /**
+ * 그룹 태스크 목록 조회
+ * GET /api/v1/groups/{groupId}/tasks?requesterId={requesterId}&offset=0&limit=20
+ */
+export function getGroupTasks({ groupId, requesterId, offset = 0, limit = 20, status }) {
+  const params = new URLSearchParams({ requesterId: String(requesterId), offset: String(offset), limit: String(limit) });
+  if (status) params.set("status", status);
+  return apiRequest(`/groups/${groupId}/tasks?${params.toString()}`);
+}
+
+/**
+ * 태스크 상세 조회
+ * GET /api/v1/tasks/{taskId}?requesterId={requesterId}
+ */
+export function getTaskDetail({ taskId, requesterId }) {
+  return apiRequest(`/tasks/${taskId}?requesterId=${requesterId}`);
+}
+
+/**
  * AI 체크리스트 생성
  * POST /api/v1/groups/{groupId}/tasks/generate
  * MANAGER의 자연어 요구사항을 AI 서버로 보내 PHOTO 또는 CHECK 체크리스트로 변환합니다.

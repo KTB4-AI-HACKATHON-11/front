@@ -1,11 +1,12 @@
 import { CheckCircle2, Clock3, Copy, MoreHorizontal, UserRound } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { updateSubTaskStatus } from "../../api/taskApi";
-import { groups, subTasks, tasks } from "../../data/mockData";
+import { getTaskDetail, updateSubTaskStatus } from "../../api/taskApi";
+import { groups } from "../../data/mockData";
+import { formatTaskDueAt, toSubTask } from "../../lib/taskDisplay";
 import SubTaskList from "./components/SubTaskList";
 import VerificationCard from "./components/VerificationCard";
 import "./TaskDetailPage.css";
@@ -13,10 +14,52 @@ import "./TaskDetailPage.css";
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
   const { taskId } = useParams();
-  const currentTask = tasks.find((task) => task.id === taskId);
-  const currentGroup = groups[0];
-  const [completedIds, setCompletedIds] = useState(subTasks.filter((item) => item.completed).map((item) => item.id));
+  const [taskDetail, setTaskDetail] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [completedIds, setCompletedIds] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTaskDetail() {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const data = await getTaskDetail({ taskId, requesterId: user?.memberId });
+        if (!cancelled) {
+          setTaskDetail(data);
+          setCompletedIds((data?.checklists ?? []).filter((item) => item.performed).map((item) => String(item.checklistId)));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTaskDetail(null);
+          setLoadError(error);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    if (user?.memberId) {
+      loadTaskDetail();
+    } else {
+      setIsLoading(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId, user?.memberId]);
+
+  const currentGroup = groups.find((group) => String(group.id) === String(taskDetail?.groupId)) ?? groups[0];
+  const subTasks = (taskDetail?.checklists ?? []).map(toSubTask);
+  const currentTask = taskDetail && {
+    title: taskDetail.title,
+    assignee: taskDetail.workerNickname || "담당자 없음",
+    dueDate: formatTaskDueAt(taskDetail.dueAt),
+  };
 
   const handleToggle = async (subTaskId) => {
     const willComplete = !completedIds.includes(subTaskId);
@@ -26,8 +69,6 @@ export default function TaskDetailPage({ user }) {
       willComplete ? [...current, subTaskId] : current.filter((id) => id !== subTaskId)
     );
     try {
-      // taskApi.updateSubTaskStatus는 현재 mock 구현입니다. 백엔드 엔드포인트가 확정되면
-      // 이 함수 내부만 실제 apiRequest 호출로 교체하면 되고, 아래 호출부는 그대로 둡니다.
       await updateSubTaskStatus({ taskId, subTaskId, completed: willComplete });
     } catch (error) {
       setCompletedIds((current) =>
@@ -46,10 +87,18 @@ export default function TaskDetailPage({ user }) {
     navigate(`/tasks/${taskId}/verify/photo`);
   };
 
-  const progress = Math.round((completedIds.length / subTasks.length) * 100);
+  const progress = taskDetail?.progress ?? (subTasks.length ? Math.round((completedIds.length / subTasks.length) * 100) : 0);
+
+  if (!user?.memberId) {
+    return <StatusState user={user} type="login" />;
+  }
+
+  if (isLoading) {
+    return <AppShell user={user} title="태스크 정보를 불러오는 중" description="잠시만 기다려주세요." backTo="/groups"><p className="group-grid__empty">태스크 정보를 불러오는 중이에요...</p></AppShell>;
+  }
 
   if (!currentTask) {
-    return <StatusState user={user} type="task" description={`요청하신 태스크(${taskId})를 찾을 수 없습니다. 태스크 ID를 다시 확인해주세요.`} />;
+    return <StatusState user={user} type={loadError?.status === 403 ? "access" : "task"} description={loadError instanceof ApiError ? loadError.message : `요청하신 태스크(${taskId})를 찾을 수 없습니다.`} />;
   }
 
   return (

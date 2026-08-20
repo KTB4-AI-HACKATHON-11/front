@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { getMyGroups } from "../../api/groupApi";
+import { getGroupTasks } from "../../api/taskApi";
 import GroupCard from "./components/GroupCard";
 import GroupJoinModal from "./components/GroupJoinModal";
 import "./GroupListPage.css";
@@ -15,6 +16,7 @@ export default function GroupListPage({ user }) {
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [taskStats, setTaskStats] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,7 +26,20 @@ export default function GroupListPage({ user }) {
       setErrorMessage("");
       try {
         const data = await getMyGroups({ memberId: user.memberId });
-        if (!cancelled) setGroups(data ?? []);
+        const nextGroups = data ?? [];
+        if (!cancelled) setGroups(nextGroups);
+
+        const taskResults = await Promise.allSettled(
+          nextGroups.map((group) => getGroupTasks({ groupId: group.groupId, requesterId: user.memberId }))
+        );
+        if (!cancelled && taskResults.every((result) => result.status === "fulfilled")) {
+          const allTasks = taskResults.flatMap((result) => result.value?.items ?? []);
+
+          setTaskStats({
+            active: allTasks.filter((task) => task.status !== "COMPLETED").length,
+            completedToday: null,
+          });
+        }
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(
@@ -73,8 +88,8 @@ export default function GroupListPage({ user }) {
         </div>
         <div className="group-overview__stats">
           <div><span>참여 그룹</span><strong>{groups.length}</strong></div>
-          <div><span>진행 태스크</span><strong>8</strong></div>
-          <div><span>오늘 완료</span><strong className="is-green">5</strong></div>
+          <div><span>진행 태스크</span><strong>{taskStats?.active ?? "-"}</strong></div>
+          <div><span>오늘 완료</span><strong className="is-green">{taskStats?.completedToday ?? "-"}</strong></div>
         </div>
       </section>
 
