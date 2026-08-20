@@ -1,33 +1,38 @@
 import { ArrowRight, Link2, LoaderCircle, X } from "lucide-react";
 import { useState } from "react";
-import { groups } from "../../../data/mockData";
+import { ApiError } from "../../../api/client";
+import { joinGroup } from "../../../api/groupApi";
 
-export default function GroupJoinModal({ onClose, onJoined }) {
+export default function GroupJoinModal({ memberId, onClose, onJoined }) {
   const [groupId, setGroupId] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isJoining) return;
+
     const normalizedId = groupId.trim();
-    if (!/^\d{6}$/.test(normalizedId)) {
-      setError("그룹 ID는 6자리 숫자로 입력해주세요.");
+    if (!/^\d+$/.test(normalizedId)) {
+      setError("그룹 ID는 숫자로 입력해주세요.");
       return;
     }
 
     setError("");
     setIsJoining(true);
-    window.setTimeout(() => {
-      // TODO: 입력한 GROUP_ID를 백엔드 그룹 참여/비교 API로 전송해야 합니다.
-      // TODO: 성공 시 반환된 GROUP_ID로 이동하고, 실패 시 API 응답 메시지를 표시해야 합니다.
-      const matchedGroup = groups.find((group) => group.id === normalizedId);
+    try {
+      const joinedGroup = await joinGroup({ memberId, groupId: Number(normalizedId) });
+      onJoined(joinedGroup.groupId);
+    } catch (err) {
+      // 404(존재하지 않는 그룹 ID), 409(이미 가입한 그룹) 모두 서버가 내려주는 message를 그대로 보여줍니다.
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : "그룹 참여에 실패했습니다. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
       setIsJoining(false);
-      if (matchedGroup) {
-        onJoined(matchedGroup.id);
-        return;
-      }
-      setError("그룹 ID를 찾을 수 없습니다. 그룹 ID를 다시 확인해주세요.");
-    }, 500);
+    }
   };
 
   return (
@@ -44,29 +49,24 @@ export default function GroupJoinModal({ onClose, onJoined }) {
         </div>
         <form onSubmit={handleSubmit}>
           <label className="field-label" htmlFor="join-group-id">그룹 ID</label>
-          <p className="group-join-modal__input-hint">문자는 입력할 수 없어요. 6자리 숫자를 입력해주세요.</p>
           <input
             className={`text-input ${error ? "text-input--error" : ""}`}
             id="join-group-id"
             value={groupId}
             onChange={(event) => {
-              setGroupId(event.target.value.replace(/\D/g, "").slice(0, 6));
+              setGroupId(event.target.value.replace(/\D/g, ""));
               setError("");
             }}
-            onBlur={() => {
-              if (groupId && groupId.length !== 6) setError("그룹 ID는 6자리 숫자로 입력해주세요.");
-            }}
-            placeholder="예: 482731"
+            placeholder="예: 1"
             inputMode="numeric"
-            maxLength={6}
-            pattern="[0-9]{6}"
+            pattern="[0-9]+"
             autoFocus
             disabled={isJoining}
           />
           {error && <p className="group-join-modal__helper group-join-modal__helper--error">{error}</p>}
           <div className="group-join-modal__actions">
             <button className="ghost-button" type="button" onClick={onClose} disabled={isJoining}>취소</button>
-            <button className="primary-button" type="submit" disabled={isJoining}>
+            <button className="primary-button" type="submit" disabled={isJoining || !groupId}>
               {isJoining ? <><LoaderCircle className="group-join-modal__loader" size={15} /> 확인 중</> : <>참여하기 <ArrowRight size={15} /></>}
             </button>
           </div>

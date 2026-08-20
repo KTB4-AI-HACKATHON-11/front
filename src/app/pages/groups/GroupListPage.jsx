@@ -63,6 +63,7 @@ export default function GroupListPage({ user }) {
       </section>
       {isJoinModalOpen && (
         <GroupJoinModal
+          memberId={user.memberId}
           onClose={() => setIsJoinModalOpen(false)}
           onJoined={(groupId) => {
             setIsJoinModalOpen(false);
