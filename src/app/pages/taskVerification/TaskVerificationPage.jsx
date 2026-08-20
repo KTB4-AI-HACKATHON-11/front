@@ -2,6 +2,7 @@ import { ArrowRight, Camera, Check, ChevronLeft, ShieldCheck, ShieldOff } from "
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
+import { members } from "../../data/mockData";
 import "./TaskVerificationPage.css";
 
 const fallbackItems = [
@@ -16,6 +17,9 @@ export default function TaskVerificationPage({ user }) {
   const navigate = useNavigate();
   const { state } = useLocation();
   const items = state?.items || fallbackItems;
+  const workers = members.filter((member) => member.role === "WORKER");
+  const [assignee, setAssignee] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [enabled, setEnabled] = useState(() => Object.fromEntries(items.map((item) => [item, true])));
   const [rules, setRules] = useState(() => Object.fromEntries(items.map((item) => [item, ""])));
 
@@ -29,7 +33,7 @@ export default function TaskVerificationPage({ user }) {
 
   const handleSave = (event) => {
     event.preventDefault();
-    // TODO: TASK_ID, SUB_TASK_ID별 검증 설정을 서버에 저장하고 태스크 상세로 이동해야 합니다.
+    // TODO: 담당 워커, 마감일시, TASK_ID, SUB_TASK_ID별 검증 설정을 서버에 저장해야 합니다.
     navigate("/tasks/task-101");
   };
 
@@ -43,6 +47,20 @@ export default function TaskVerificationPage({ user }) {
             <p>각 항목이 완료되었다고 판단할 기준을 설정해주세요.</p>
           </div>
 
+          <div className="task-verification-assignment">
+            <div className="task-verification-assignment__field">
+              <label className="field-label" htmlFor="task-assignee">담당자<span className="field-label__required">*</span></label>
+              <select className="text-input" id="task-assignee" value={assignee} onChange={(event) => setAssignee(event.target.value)} required>
+                <option value="" disabled>워커를 선택해주세요</option>
+                {workers.map((worker) => <option value={worker.name} key={worker.id}>{worker.name}</option>)}
+              </select>
+            </div>
+            <div className="task-verification-assignment__field">
+              <label className="field-label" htmlFor="task-due-date">마감일시<span className="field-label__required">*</span></label>
+              <input className="text-input" id="task-due-date" type="datetime-local" value={dueDate} onChange={(event) => setDueDate(event.target.value)} required />
+            </div>
+          </div>
+
           <div className="task-verification-items">
             {items.map((item, index) => (
               <section className="task-verification-item page-card" key={item}>
@@ -54,6 +72,7 @@ export default function TaskVerificationPage({ user }) {
                     className={`switch-control ${enabled[item] ? "switch-control--on" : ""}`}
                     onClick={() => toggleVerification(item)}
                     aria-label={`${item} 검증 기능 사용 여부`}
+                    title={enabled[item] ? "검증 끄기" : "검증 켜기"}
                   ><span /></button>
                 </div>
 
