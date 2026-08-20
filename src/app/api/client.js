@@ -17,16 +17,20 @@ export class ApiError extends Error {
 
 export async function apiRequest(path, options = {}) {
   const { method = "GET", body, headers, ...rest } = options;
+  // multipart/form-data 요청(예: 파일 업로드)은 FormData를 그대로 보내야 합니다.
+  // JSON.stringify로 감싸거나 Content-Type을 직접 지정하면 boundary가 깨져 서버가 파싱하지 못하므로,
+  // FormData인 경우 Content-Type 헤더를 생략해 브라우저가 boundary를 포함해 자동 설정하도록 둡니다.
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...headers,
       },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
       ...rest,
     });
   } catch {
