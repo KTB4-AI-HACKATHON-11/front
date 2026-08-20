@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { getTaskDetail, updateSubTaskStatus } from "../../api/taskApi";
+import { getTaskDetail, updateChecklistPerformed } from "../../api/taskApi";
 import { groups } from "../../data/mockData";
 import { formatTaskDueAt, toSubTask } from "../../lib/taskDisplay";
 import SubTaskList from "./components/SubTaskList";
@@ -69,7 +69,31 @@ export default function TaskDetailPage({ user }) {
       willComplete ? [...current, subTaskId] : current.filter((id) => id !== subTaskId)
     );
     try {
-      await updateSubTaskStatus({ taskId, subTaskId, completed: willComplete });
+      const result = await updateChecklistPerformed({
+        taskId,
+        checklistId: subTaskId,
+        requesterId: user.memberId,
+        performed: willComplete,
+      });
+      setCompletedIds((current) =>
+        result?.performed === willComplete
+          ? (willComplete ? [...new Set([...current, subTaskId])] : current.filter((id) => id !== subTaskId))
+          : current
+      );
+      setTaskDetail((current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          progress: result?.progress ?? current.progress,
+          status: result?.taskStatus ?? current.status,
+          checklists: current.checklists.map((item) =>
+            String(item.checklistId) === String(subTaskId)
+              ? { ...item, performed: result?.performed ?? willComplete, performedAt: result?.performedAt ?? null }
+              : item
+          ),
+        };
+      });
     } catch (error) {
       setCompletedIds((current) =>
         willComplete ? current.filter((id) => id !== subTaskId) : [...current, subTaskId]

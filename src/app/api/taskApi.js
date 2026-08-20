@@ -87,14 +87,16 @@ export function createTask({ groupId, managerId, title, message, workerId, dueAt
 }
 
 /**
- * SUB_TASK 수행 여부 변경
- * (예상) PATCH /api/v1/tasks/{taskId}/sub-tasks/{subTaskId}
- * @param {{ taskId: string, subTaskId: string, completed: boolean }} params
- * @returns {Promise<{ subTaskId: string, completed: boolean }>}
- * TODO: 백엔드 엔드포인트가 확정되면 아래 mock 구현을 apiRequest 호출로 교체하세요.
- *   return apiRequest(`/tasks/${taskId}/sub-tasks/${subTaskId}`, { method: "PATCH", body: { completed } });
+ * 체크리스트 수행 여부 변경
+ * PATCH /api/v1/tasks/{taskId}/checklists/{checklistId}/performed
+ * @param {{ taskId: string|number, checklistId: string|number, requesterId: string|number, performed: boolean }} params
  */
-export async function updateSubTaskStatus({ taskId, subTaskId, completed }) {
-  console.log("[taskApi] updateSubTaskStatus 호출 예정 payload", { taskId, subTaskId, completed });
-  return { subTaskId, completed }; // 임시 mock 값
+export function updateChecklistPerformed({ taskId, checklistId, requesterId, performed }) {
+  return apiRequest(
+    `/tasks/${taskId}/checklists/${checklistId}/performed?requesterId=${requesterId}`,
+    {
+      method: "PATCH",
+      body: { performed },
+    }
+  );
 }
