@@ -14,6 +14,10 @@
 .task-verification-item__top { display: flex; align-items: center; gap: 9px; }
 .task-verification-item__number { display: flex; width: 23px; height: 23px; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 6px; background: #efeff4; color: #777782; font-size: 9px; }
 .task-verification-item__top strong { min-width: 0; flex: 1; color: #4f4f5a; font-size: 11px; line-height: 1.45; }
+.switch-control { position: relative; width: 38px; height: 22px; flex: 0 0 auto; padding: 0; border: 0; border-radius: 99px; background: #cfcfd7; cursor: pointer; }
+.switch-control span { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: transform 160ms ease; }
+.switch-control--on { background: #6255e7; }
+.switch-control--on span { transform: translateX(16px); }
 .task-verification-item__body { margin-top: 15px; }
 .task-verification-method { display: flex; align-items: center; gap: 9px; margin-bottom: 15px; padding: 10px 11px; border: 1px solid #ddd9fa; border-radius: 8px; background: #f7f6ff; }
 .task-verification-method > span { display: flex; width: 31px; height: 31px; align-items: center; justify-content: center; border-radius: 7px; background: white; color: #5c50d7; }

@@ -54,6 +54,7 @@ export default function TaskVerificationPage({ user }) {
                     className={`switch-control ${enabled[item] ? "switch-control--on" : ""}`}
                     onClick={() => toggleVerification(item)}
                     aria-label={`${item} 검증 기능 사용 여부`}
+                    title={enabled[item] ? "검증 끄기" : "검증 켜기"}
                   ><span /></button>
                 </div>
 
