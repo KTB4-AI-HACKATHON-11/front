@@ -6,26 +6,47 @@ import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getTaskDetail } from "../../api/taskApi";
 import { groups } from "../../data/mockData";
+import { isSameLocalDate, readJpegCapturedAt } from "../../lib/exifDate";
 import { toSubTask } from "../../lib/taskDisplay";
 import CameraFrame from "./components/CameraFrame";
+import FailureResult from "./components/FailureResult";
+import ReviewRequested from "./components/ReviewRequested";
 import SuccessResult from "./components/SuccessResult";
 import VerifyingState from "./components/VerifyingState";
 import "./PhotoVerificationPage.css";
 
-// TODO: 사진 검증 API 연동 전까지 사용하는 임시 목업 값입니다. API 연동 시 실제 응답 데이터로 대체해야 합니다.
-const MOCK_CAPTURED_IMAGE = {
-  fileName: "store-front-preview.jpg",
-  previewUrl: "/mock/photo-verification/store-front-preview.jpg", // 실제 촬영 이미지가 들어갈 자리 (CameraFrame은 CSS 일러스트를 그대로 사용하므로 화면에는 반영되지 않음)
-};
-
-const MOCK_VERIFICATION_RESULT = {
-  success: true,
-  matchScore: 96,
-};
-
-// 실제 검증 API 응답을 기다리는 느낌을 주기 위한 임시 지연 시간(ms). API 연동 시 제거합니다.
+// TODO: 사진 검증 API 연동 전까지 사용하는 임시 목업 지연/판정 로직입니다.
+// 실제 API가 준비되면 verifyPhotoMock 호출부를 taskApi의 실제 검증 API 호출로 교체하면 됩니다.
+// (요청/응답 형태는 이 함수의 인자·반환값과 최대한 맞춰뒀습니다.)
 const MOCK_VERIFY_DELAY_MS = 1500;
 const MOCK_VERIFY_PROGRESS_STEP_MS = 30;
+const MOCK_VERIFY_THRESHOLD = 80;
+// 실패/재검증 화면을 로컬에서 확인하려면 이 값을 1 이상으로 바꾸세요.
+// (지금까지의 실패 횟수가 이 값보다 작으면 검증이 실패하는 것으로 목업합니다.) 실제 API 연동 시
+// 이 상수와 verifyPhotoMock의 판정 로직 전체를 제거하고 서버 응답으로 대체해야 합니다.
+const MOCK_FORCE_FAIL_ATTEMPTS = 0;
+// 같은 항목에서 AI 검증에 연속 실패했을 때 "매니저에게 확인 요청"을 노출하는 기준 횟수
+const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
+
+function verifyPhotoMock({ failCount, rule }) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const willFail = failCount < MOCK_FORCE_FAIL_ATTEMPTS;
+      if (willFail) {
+        resolve({
+          success: false,
+          matchScore: 54,
+          threshold: MOCK_VERIFY_THRESHOLD,
+          reason: rule
+            ? `제출한 사진이 "${rule}" 기준과 일치하지 않았어요.`
+            : "제출한 사진이 검증 기준과 일치하지 않았어요.",
+        });
+      } else {
+        resolve({ success: true, matchScore: 96, threshold: MOCK_VERIFY_THRESHOLD });
+      }
+    }, MOCK_VERIFY_DELAY_MS);
+  });
+}
 
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
@@ -34,13 +55,17 @@ export default function PhotoVerificationPage({ user }) {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [captured, setCaptured] = useState(false);
-  const [capturedImage, setCapturedImage] = useState(null);
+  const [capturedImage, setCapturedImage] = useState(null); // { file, previewUrl }
+  const [uploadError, setUploadError] = useState("");
+  const [isCheckingUpload, setIsCheckingUpload] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
-  const [verified, setVerified] = useState(false);
-  const [verificationResult, setVerificationResult] = useState(null);
-  const verifyTimeoutRef = useRef(null);
-  const verifyIntervalRef = useRef(null);
+  const [verificationResult, setVerificationResult] = useState(null); // { success, matchScore, threshold, reason }
+  const [failCount, setFailCount] = useState(0);
+  const [reviewRequested, setReviewRequested] = useState(false);
+  const capturedImageRef = useRef(capturedImage);
+  const progressIntervalRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   // 태스크 상세를 실제 API에서 불러옵니다. 이 화면은 이전에 mockData의 tasks 배열을 사용했기 때문에
   // 실제 태스크 id(예: 2)로 접근하면 항상 "태스크를 찾을 수 없어요"가 떴습니다. TaskDetailPage와 동일한
@@ -75,46 +100,114 @@ export default function PhotoVerificationPage({ user }) {
     };
   }, [taskId, user?.memberId]);
 
+  // 다른 체크리스트 항목(subTaskId)으로 이동하면 이전 항목에서 남아있던 촬영/검증 상태가 그대로
+  // 보이지 않도록 초기화합니다. 이 페이지는 같은 라우트 패턴이라 subTaskId만 바뀌면 컴포넌트가
+  // 재마운트되지 않습니다.
+  useEffect(() => {
+    setCapturedImage((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return null;
+    });
+    setCaptured(false);
+    setUploadError("");
+    setVerificationResult(null);
+    setFailCount(0);
+    setReviewRequested(false);
+  }, [subTaskId]);
+
+  useEffect(() => {
+    capturedImageRef.current = capturedImage;
+  }, [capturedImage]);
+
   useEffect(() => {
     return () => {
-      clearTimeout(verifyTimeoutRef.current);
-      clearInterval(verifyIntervalRef.current);
+      isMountedRef.current = false;
+      clearInterval(progressIntervalRef.current);
+      if (capturedImageRef.current?.previewUrl) {
+        URL.revokeObjectURL(capturedImageRef.current.previewUrl);
+      }
     };
   }, []);
 
-  const handleCapture = () => {
-    // TODO: 모바일 카메라 권한 요청 후 촬영한 이미지 파일을 상태에 저장해야 합니다.
-    // API 미구현으로 임시 목업 이미지 값을 상태에 저장해둡니다.
-    setCapturedImage(MOCK_CAPTURED_IMAGE);
+  const setCapturedFile = (file) => {
+    setCapturedImage((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return { file, previewUrl: URL.createObjectURL(file) };
+    });
+    setUploadError("");
+    setVerificationResult(null);
     setCaptured(true);
   };
 
-  const handleRetake = () => {
-    setCaptured(false);
-    setCapturedImage(null);
+  // 카메라로 바로 촬영한 사진입니다. 그 자리에서 찍은 사진이라고 보고 별도의 촬영 시각 검증은 하지 않습니다.
+  const handleCapture = (file) => {
+    setCapturedFile(file);
   };
 
-  const handleVerify = () => {
-    // TODO: 촬영 이미지(capturedImage)와 검증 기준을 사진 검증 API로 전송하고 성공 여부를 받아야 합니다.
+  // 갤러리에서 불러온 사진입니다. 예전에 찍어둔 사진을 제출하는 것을 막기 위해 EXIF 촬영 시각이
+  // 오늘 날짜인지 확인한 뒤에만 사용합니다. EXIF를 읽을 수 없는 파일(HEIC 등)은 안전하게 거부합니다.
+  const handleUpload = async (file) => {
+    setUploadError("");
+    setIsCheckingUpload(true);
+    try {
+      const takenAt = await readJpegCapturedAt(file);
+      if (!isMountedRef.current) return; // 확인 중 다른 화면으로 이동한 경우 상태 갱신을 건너뜁니다.
+
+      if (!takenAt) {
+        setUploadError("사진 촬영 시각을 확인할 수 없어요. 카메라로 바로 촬영해주세요.");
+        return;
+      }
+      if (!isSameLocalDate(takenAt, new Date())) {
+        setUploadError("오늘 촬영한 사진만 업로드할 수 있어요.");
+        return;
+      }
+      setCapturedFile(file);
+    } finally {
+      if (isMountedRef.current) setIsCheckingUpload(false);
+    }
+  };
+
+  const handleRetake = () => {
+    setCapturedImage((current) => {
+      if (current?.previewUrl) URL.revokeObjectURL(current.previewUrl);
+      return null;
+    });
+    setCaptured(false);
+    setUploadError("");
+    setVerificationResult(null);
+  };
+
+  const handleVerify = async (subTask) => {
+    // TODO: 촬영/업로드한 이미지(capturedImage.file)와 검증 기준을 사진 검증 API로 전송하고
+    // 성공 여부를 받아야 합니다. 백엔드 API가 준비되면 아래 verifyPhotoMock 호출을 실제 API 호출로
+    // 교체하면 됩니다.
     // TODO: 사진 인증 API가 연결되면 성공 응답에서 performed 상태를 받아 서버에 저장해야 합니다.
-    // API 미구현으로 임시 목업 응답 값을 성공 화면에 보여줄 값으로 미리 설정해두고,
-    // 실제 API 응답을 기다리는 흐름처럼 보이도록 짧은 지연 동안 진행률을 0 → 100%로 채웁니다.
     setVerifying(true);
     setVerifyProgress(0);
+    setVerificationResult(null);
 
     const startedAt = Date.now();
-    verifyIntervalRef.current = setInterval(() => {
+    progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - startedAt;
       setVerifyProgress(Math.min(100, Math.round((elapsed / MOCK_VERIFY_DELAY_MS) * 100)));
     }, MOCK_VERIFY_PROGRESS_STEP_MS);
 
-    verifyTimeoutRef.current = setTimeout(() => {
-      clearInterval(verifyIntervalRef.current);
-      setVerifyProgress(100);
-      setVerificationResult(MOCK_VERIFICATION_RESULT);
-      setVerified(MOCK_VERIFICATION_RESULT.success);
-      setVerifying(false);
-    }, MOCK_VERIFY_DELAY_MS);
+    const result = await verifyPhotoMock({ failCount, rule: subTask.rule });
+    clearInterval(progressIntervalRef.current);
+    if (!isMountedRef.current) return; // 검증 중 다른 화면으로 이동한 경우 상태 갱신을 건너뜁니다.
+
+    setVerifyProgress(100);
+    setVerifying(false);
+    setVerificationResult(result);
+    if (!result.success) {
+      setFailCount((current) => current + 1);
+    }
+  };
+
+  const handleRequestReview = () => {
+    // TODO: 매니저 확인 요청 API가 아직 없어 화면 상태만 변경합니다. 연동 시 이 체크리스트를
+    // "매니저 확인 대기" 상태로 서버에 저장하는 API를 호출해야 합니다.
+    setReviewRequested(true);
   };
 
   if (!user?.memberId) {
@@ -169,6 +262,8 @@ export default function PhotoVerificationPage({ user }) {
 
   // 그룹 정보를 조회하는 API가 아직 없어, 태스크 상세 응답의 groupId로 mock 그룹 목록에서 이름만 보조적으로 찾습니다.
   const currentGroup = groups.find((group) => String(group.id) === String(taskDetail.groupId)) ?? groups[0];
+  const isResultView = Boolean(verificationResult) || verifying || reviewRequested;
+  const canRequestReview = failCount >= MANAGER_REVIEW_FAIL_THRESHOLD;
 
   return (
     <AppShell
@@ -183,12 +278,25 @@ export default function PhotoVerificationPage({ user }) {
         { label: "사진 검증", path: `/tasks/${taskId}/verify/photo/${subTaskId}`, current: true },
       ]}
     >
-      <div className={`photo-verification-layout ${verified || verifying ? "photo-verification-layout--result" : ""}`}>
+      <div className={`photo-verification-layout ${isResultView ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
-          {verified ? (
+          {reviewRequested ? (
+            <ReviewRequested onConfirm={() => navigate(`/tasks/${taskId}`)} />
+          ) : verificationResult?.success ? (
             <SuccessResult
-              matchScore={verificationResult?.matchScore}
+              matchScore={verificationResult.matchScore}
+              description={subTask.instruction ? `${subTask.instruction} 기준으로 확인되었습니다.` : undefined}
               onConfirm={() => navigate(`/tasks/${taskId}`, { state: { verifiedChecklistId: subTaskId } })}
+            />
+          ) : verificationResult && !verificationResult.success ? (
+            <FailureResult
+              reason={verificationResult.reason}
+              matchScore={verificationResult.matchScore}
+              threshold={verificationResult.threshold}
+              attemptCount={failCount}
+              canRequestReview={canRequestReview}
+              onRetake={handleRetake}
+              onRequestReview={handleRequestReview}
             />
           ) : verifying ? (
             <VerifyingState progress={verifyProgress} />
@@ -201,12 +309,21 @@ export default function PhotoVerificationPage({ user }) {
                 </div>
                 <span className="status-pill status-pill--waiting">{subTask.completed ? "수행 완료" : "검증 대기"}</span>
               </div>
-              <CameraFrame captured={captured} onCapture={handleCapture} onRetake={handleRetake} />
+              <CameraFrame
+                captured={captured}
+                previewUrl={capturedImage?.previewUrl}
+                disabled={isCheckingUpload}
+                onCapture={handleCapture}
+                onUpload={handleUpload}
+                onRetake={handleRetake}
+              />
+              {isCheckingUpload && <p className="photo-camera-card__notice">불러온 사진의 촬영 시각을 확인하고 있어요...</p>}
+              {uploadError && <p className="photo-camera-card__error" role="alert">{uploadError}</p>}
             </>
           )}
         </section>
 
-        {!verified && !verifying && (
+        {!isResultView && (
           <aside className="photo-criteria page-card">
             <div className="photo-criteria__heading"><span><ShieldCheck size={17} /></span><div><small>CHECK POINT</small><h2>사진 검증 기준</h2></div></div>
             <p className="photo-criteria__description">{subTask.rule || "아래 기준에 맞게 사진을 촬영해주세요."}</p>
@@ -215,7 +332,9 @@ export default function PhotoVerificationPage({ user }) {
                 <img src={subTask.referencePhotoUrl} alt="기준 사진" />
               </div>
             )}
-            <button className="primary-button" disabled={!captured} onClick={handleVerify}><ShieldCheck size={15} /> 사진으로 검증하기</button>
+            <button className="primary-button" disabled={!captured || isCheckingUpload} onClick={() => handleVerify(subTask)}>
+              <ShieldCheck size={15} /> 사진으로 검증하기
+            </button>
             <button className="ghost-button" onClick={() => navigate(`/tasks/${taskId}`)}>나중에 검증하기</button>
           </aside>
         )}
