@@ -6,16 +6,16 @@ import { apiRequest } from "./client";
  * POST /api/v1/groups/{groupId}/tasks/generate
  * MANAGER의 자연어 요구사항을 AI 서버로 보내 PHOTO 또는 CHECK 체크리스트로 변환합니다.
  * 이 API는 결과를 저장하지 않고 프런트엔드에만 반환합니다(별도의 태스크 저장 API가 아직 없음).
- * @param {{ groupId: string|number, managerId: number, title: string, message: string, assigneeName: string, dueAt: string }} params
+ * @param {{ groupId: string|number, managerId: number, title: string, message: string }} params
  * @returns {Promise<{
- *   title: string, message: string, assigneeName: string, dueAt: string,
+ *   title: string, message: string, assigneeName?: string, dueAt?: string,
  *   checklists: Array<{ sequence: number, title: string, instruction: string, completionType: "PHOTO"|"CHECK", rule: string }>
  * }>}
  */
-export function generateTaskChecklist({ groupId, managerId, title, message, assigneeName, dueAt }) {
+export function generateTaskChecklist({ groupId, managerId, title, message }) {
   return apiRequest(`/groups/${groupId}/tasks/generate`, {
     method: "POST",
-    body: { managerId, title, message, assigneeName, dueAt },
+    body: { managerId, title, message },
   });
 }
 

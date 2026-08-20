@@ -6,34 +6,12 @@ import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
 import "./TaskCreatePage.css";
 
-// datetime-local 입력값("2026-08-20T09:30")을 백엔드가 요구하는
-// 오프셋 포함 ISO 8601 문자열("2026-08-20T09:30:00+09:00")로 변환합니다.
-function toIsoWithOffset(datetimeLocalValue) {
-  if (!datetimeLocalValue) return null;
-  const date = new Date(datetimeLocalValue);
-  if (Number.isNaN(date.getTime())) return null;
-
-  const pad = (value) => String(value).padStart(2, "0");
-  const offsetMinutes = -date.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const offsetHours = pad(Math.floor(Math.abs(offsetMinutes) / 60));
-  const offsetMins = pad(Math.abs(offsetMinutes) % 60);
-
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
-    `${sign}${offsetHours}:${offsetMins}`
-  );
-}
-
 export default function TaskCreatePage({ user }) {
   const { groupId } = useParams();
   const [title, setTitle] = useState("오픈 전 매장 점검");
   const [message, setMessage] = useState(
     "매장 오픈 전에 입구 청소 상태와 조명이 모두 켜졌는지 확인하고, 계산대 시재와 영수증 용지를 점검해줘. 마지막에는 매장 전경 사진도 찍어야 해."
   );
-  const [assigneeName, setAssigneeName] = useState("");
-  const [dueAtLocal, setDueAtLocal] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
@@ -41,12 +19,6 @@ export default function TaskCreatePage({ user }) {
   const handleGenerate = async (event) => {
     event.preventDefault();
     if (isGenerating) return;
-
-    const dueAt = toIsoWithOffset(dueAtLocal);
-    if (!dueAt) {
-      setErrorMessage("마감 일시를 입력해주세요.");
-      return;
-    }
 
     setErrorMessage("");
     setIsGenerating(true);
@@ -59,8 +31,6 @@ export default function TaskCreatePage({ user }) {
         managerId: user.memberId,
         title: title.trim(),
         message: message.trim(),
-        assigneeName: assigneeName.trim(),
-        dueAt,
       });
       setGeneratedChecklist(result);
     } catch (error) {
@@ -81,10 +51,13 @@ export default function TaskCreatePage({ user }) {
           <div className="form-section-heading">
             <span>AI CHECKLIST</span>
             <h2>{generatedChecklist.title}</h2>
-            <p>
-              담당자 {generatedChecklist.assigneeName} · 마감{" "}
-              {new Date(generatedChecklist.dueAt).toLocaleString("ko-KR")}
-            </p>
+            {generatedChecklist.assigneeName || generatedChecklist.dueAt ? (
+              <p>
+                {generatedChecklist.assigneeName ? `담당자 ${generatedChecklist.assigneeName}` : ""}
+                {generatedChecklist.assigneeName && generatedChecklist.dueAt ? " · " : ""}
+                {generatedChecklist.dueAt ? `마감 ${new Date(generatedChecklist.dueAt).toLocaleString("ko-KR")}` : ""}
+              </p>
+            ) : null}
           </div>
           <ul className="task-create-checklist">
             {generatedChecklist.checklists.map((item) => (
@@ -125,30 +98,6 @@ export default function TaskCreatePage({ user }) {
                   id="task-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  required
-                  disabled={isGenerating}
-                />
-              </div>
-              <div className="task-create-field">
-                <label className="field-label" htmlFor="task-assignee">담당자 이름<span className="field-label__required">*</span></label>
-                <input
-                  className="text-input"
-                  id="task-assignee"
-                  value={assigneeName}
-                  onChange={(event) => setAssigneeName(event.target.value)}
-                  placeholder="예: 서연"
-                  required
-                  disabled={isGenerating}
-                />
-              </div>
-              <div className="task-create-field">
-                <label className="field-label" htmlFor="task-due-at">마감 일시<span className="field-label__required">*</span></label>
-                <input
-                  className="text-input"
-                  id="task-due-at"
-                  type="datetime-local"
-                  value={dueAtLocal}
-                  onChange={(event) => setDueAtLocal(event.target.value)}
                   required
                   disabled={isGenerating}
                 />
