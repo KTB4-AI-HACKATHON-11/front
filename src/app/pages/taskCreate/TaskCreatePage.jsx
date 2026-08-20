@@ -1,6 +1,6 @@
 import { ArrowRight, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { useBeforeUnload, useBlocker, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
@@ -12,6 +12,39 @@ const TASK_MESSAGE_MAX_LENGTH = 1000;
 const TASK_TITLE_PLACEHOLDER = "예: 오픈 전 매장 점검";
 const TASK_MESSAGE_PLACEHOLDER =
   "예: 매장 오픈 전에 입구 청소 상태와 조명이 모두 켜졌는지 확인하고, 계산대 시재와 영수증 용지를 점검해줘. 마지막에는 매장 전경 사진도 찍어야 해.";
+const TASK_CREATE_DRAFT_KEY_PREFIX = "checkon-task-create-draft";
+
+function getDraftStorageKey(groupId) {
+  return `${TASK_CREATE_DRAFT_KEY_PREFIX}-${groupId}`;
+}
+
+function loadDraft(groupId, workerMembers) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const rawDraft = window.sessionStorage.getItem(getDraftStorageKey(groupId));
+    if (!rawDraft) {
+      return null;
+    }
+
+    const parsedDraft = JSON.parse(rawDraft);
+    const hasMatchingAssignee = workerMembers.some((member) => member.id === parsedDraft.assigneeId);
+
+    return {
+      assigneeId: hasMatchingAssignee ? parsedDraft.assigneeId : workerMembers[0]?.id ?? "",
+      title: typeof parsedDraft.title === "string" ? parsedDraft.title : "",
+      message: typeof parsedDraft.message === "string" ? parsedDraft.message : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) {
+  return Boolean(title.trim() || message.trim() || (assigneeId && assigneeId !== defaultAssigneeId));
+}
 
 function validateTaskCreateForm({ title, message, assigneeId }) {
   const trimmedTitle = title.trim();
@@ -43,12 +76,56 @@ function validateTaskCreateForm({ title, message, assigneeId }) {
 export default function TaskCreatePage({ user }) {
   const { groupId } = useParams();
   const workerMembers = members.filter((member) => member.role === "WORKER");
-  const [assigneeId, setAssigneeId] = useState(workerMembers[0]?.id ?? "");
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
+  const defaultAssigneeId = workerMembers[0]?.id ?? "";
+  const draft = loadDraft(groupId, workerMembers);
+  const [assigneeId, setAssigneeId] = useState(draft?.assigneeId ?? defaultAssigneeId);
+  const [title, setTitle] = useState(draft?.title ?? "");
+  const [message, setMessage] = useState(draft?.message ?? "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
+  const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) && !generatedChecklist;
+  const blocker = useBlocker(hasUnsavedChanges);
+
+  useEffect(() => {
+    if (generatedChecklist) {
+      return;
+    }
+
+    if (!hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId)) {
+      window.sessionStorage.removeItem(getDraftStorageKey(groupId));
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      getDraftStorageKey(groupId),
+      JSON.stringify({ assigneeId, title, message })
+    );
+  }, [assigneeId, defaultAssigneeId, generatedChecklist, groupId, message, title]);
+
+  useEffect(() => {
+    if (blocker.state !== "blocked") {
+      return;
+    }
+
+    const shouldLeave = window.confirm("작성 중인 내용이 있습니다. 이 페이지를 벗어나면 저장되지 않은 변경사항이 사라질 수 있습니다. 이동할까요?");
+
+    if (shouldLeave) {
+      blocker.proceed();
+      return;
+    }
+
+    blocker.reset();
+  }, [blocker]);
+
+  useBeforeUnload((event) => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    event.preventDefault();
+    event.returnValue = "";
+  });
 
   const handleGenerate = async (event) => {
     event.preventDefault();
