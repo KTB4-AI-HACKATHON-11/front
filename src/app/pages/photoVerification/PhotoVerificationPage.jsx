@@ -77,7 +77,7 @@ export default function PhotoVerificationPage({ user }) {
 
   return (
     <AppShell user={user} title="사진 검증" description="오픈 전 매장 점검" backTo="/tasks/task-101">
-      <div className="photo-verification-layout">
+      <div className={`photo-verification-layout ${verified || verifying ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
           {verified ? (
             <SuccessResult matchScore={verificationResult?.matchScore} onConfirm={() => navigate("/tasks/task-101")} />
