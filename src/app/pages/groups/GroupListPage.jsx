@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
 import { groups } from "../../data/mockData";
+import { mergeGroups } from "../../lib/groupStorage";
 import GroupCard from "./components/GroupCard";
 import GroupJoinModal from "./components/GroupJoinModal";
 import "./GroupListPage.css";
@@ -11,9 +12,10 @@ export default function GroupListPage({ user }) {
   const navigate = useNavigate();
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const mergedGroups = mergeGroups(groups);
 
   // 이미 불러온 그룹 목록(groups)에서 그룹명이 일치하는지 여부로만 클라이언트에서 필터링합니다.
-  const filteredGroups = groups.filter((group) =>
+  const filteredGroups = mergedGroups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
   );
 

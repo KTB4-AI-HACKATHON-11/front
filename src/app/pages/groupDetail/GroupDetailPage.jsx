@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { groups, members, tasks } from "../../data/mockData";
+import { mergeGroups } from "../../lib/groupStorage";
 import GroupInviteModal from "./components/GroupInviteModal";
 import MemberList from "./components/MemberList";
 import TaskCard from "./components/TaskCard";
@@ -13,7 +14,9 @@ export default function GroupDetailPage({ user }) {
   const { groupId } = useParams();
   const [copied, setCopied] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const currentGroup = groups.find((group) => group.id === groupId);
+  const mergedGroups = mergeGroups(groups);
+  const currentGroup = mergedGroups.find((group) => group.id === groupId);
+  const groupTasks = currentGroup && groups.some((group) => group.id === groupId) ? tasks : [];
 
   const handleCopyGroupId = async () => {
     try {
@@ -43,10 +46,10 @@ export default function GroupDetailPage({ user }) {
   const canManage = currentGroup.currentUserRole === "MANAGER";
 
   return (
-    <AppShell
+      <AppShell
       user={user}
-      title="성수 플래그십 스토어"
-      description="오픈 준비부터 마감 점검까지 현장 운영 업무를 관리합니다."
+      title={currentGroup.name}
+      description={currentGroup.description}
       backTo="/groups"
       actions={
         <div className="group-detail-actions">
@@ -63,7 +66,7 @@ export default function GroupDetailPage({ user }) {
     >
       <section className="group-detail-summary page-card">
         <div className="group-detail-summary__identity">
-          <span className="group-detail-summary__icon">성</span>
+          <span className="group-detail-summary__icon">{currentGroup.name.slice(0, 1)}</span>
           <div>
             <div>
               <span className="status-pill status-pill--active">진행 중</span>
@@ -75,23 +78,27 @@ export default function GroupDetailPage({ user }) {
                 </button>
               </span>
             </div>
-            <h2>성수 플래그십 스토어</h2>
+            <h2>{currentGroup.name}</h2>
           </div>
         </div>
         <div className="group-detail-summary__metrics">
-          <div><span><Users size={13} /> 멤버</span><strong>8명</strong></div>
-          <div><span><CalendarDays size={13} /> 오늘 태스크</span><strong>3개</strong></div>
-          <div><span>전체 완료율</span><strong className="is-violet">58%</strong></div>
+          <div><span><Users size={13} /> 멤버</span><strong>{currentGroup.memberCount}명</strong></div>
+          <div><span><CalendarDays size={13} /> 오늘 태스크</span><strong>{groupTasks.length}개</strong></div>
+          <div><span>전체 완료율</span><strong className="is-violet">{currentGroup.taskCount ? Math.round((currentGroup.completedCount / currentGroup.taskCount) * 100) : 0}%</strong></div>
         </div>
       </section>
 
       <div className="group-detail-layout">
         <section className="task-panel page-card">
           <div className="task-panel__heading">
-            <div><h2>태스크 목록</h2><span>총 {tasks.length}개</span></div>
+            <div><h2>태스크 목록</h2><span>총 {groupTasks.length}개</span></div>
           </div>
           <div className="task-list">
-            {tasks.map((task) => <TaskCard key={task.id} task={task} onOpen={() => navigate(`/tasks/${task.id}`)} />)}
+            {groupTasks.length === 0 ? (
+              <p className="group-grid__empty">아직 이 그룹에 연결된 태스크가 없습니다.</p>
+            ) : (
+              groupTasks.map((task) => <TaskCard key={task.id} task={task} onOpen={() => navigate(`/tasks/${task.id}`)} />)
+            )}
           </div>
         </section>
         <MemberList members={members} />

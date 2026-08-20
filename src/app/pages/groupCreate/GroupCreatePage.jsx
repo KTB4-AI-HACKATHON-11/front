@@ -6,6 +6,7 @@ import AppShell from "../../components/AppShell";
 import GroupGuide from "./components/GroupGuide";
 import { ApiError } from "../../api/client";
 import { createGroup } from "../../api/groupApi";
+import { formatGroupId, saveCreatedGroup } from "../../lib/groupStorage";
 import "./GroupCreatePage.css";
 
 const GROUP_NAME_MAX_LENGTH = 50;
@@ -62,6 +63,7 @@ export default function GroupCreatePage({ user }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const hasUnsavedChanges = hasGroupDraftValue({ groupName, groupDescription });
+  const isFormReady = Boolean(groupName.trim());
 
   useEffect(() => {
     if (!hasGroupDraftValue({ groupName, groupDescription })) {
@@ -114,8 +116,14 @@ export default function GroupCreatePage({ user }) {
         name: groupName.trim(),
         description: groupDescription.trim(),
       });
+      const formattedGroupId = formatGroupId(groupId);
+      saveCreatedGroup({
+        id: formattedGroupId,
+        name: groupName.trim(),
+        description: groupDescription.trim() || "새로 만든 업무 그룹입니다.",
+      });
       window.sessionStorage.removeItem(GROUP_CREATE_DRAFT_KEY);
-      navigate(`/groups/${groupId}`);
+      navigate(`/groups/${formattedGroupId}`);
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -138,9 +146,23 @@ export default function GroupCreatePage({ user }) {
       <div className="group-create-layout">
         <section className="page-card group-create-form-card">
           <div className="form-section-heading">
-            <span>기본 정보</span>
+            <span>GROUP SETUP</span>
             <h2>그룹 정보를 입력해주세요</h2>
             <p>그룹명은 멤버들이 가장 먼저 확인하는 이름입니다.</p>
+            <div className="group-create-stepper" aria-label="그룹 생성 진행 상태">
+              <div className={`group-create-step ${isFormReady ? "is-current" : "is-active"}`}>
+                <span>1</span>
+                <strong>기본 정보</strong>
+              </div>
+              <div className={`group-create-step ${isFormReady ? "is-active" : ""} ${isSubmitting ? "is-current" : ""}`}>
+                <span>2</span>
+                <strong>그룹 생성</strong>
+              </div>
+              <div className="group-create-step">
+                <span>3</span>
+                <strong>멤버 초대</strong>
+              </div>
+            </div>
           </div>
 
           <form onSubmit={handleCreate}>
