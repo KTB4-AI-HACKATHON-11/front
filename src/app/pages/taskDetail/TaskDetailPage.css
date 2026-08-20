@@ -49,10 +49,14 @@
 .task-detail-content__heading > strong { padding: 5px 8px; border-radius: 7px; background: #f1f0ff; color: #5e51da; font-size: 10px; }
 
 .subtask-list { padding: 5px 17px 16px; }
-.subtask-row { display: flex; width: 100%; min-height: 66px; align-items: center; gap: 10px; padding: 9px 6px; border: 0; border-bottom: 1px solid #eeeeF2; background: white; text-align: left; cursor: pointer; }
+.subtask-row { display: flex; width: 100%; min-height: 66px; align-items: center; gap: 7px; padding: 9px 6px; border: 0; border-bottom: 1px solid #eeeeF2; background: white; text-align: left; }
 .subtask-row:last-child { border-bottom: 0; }
 .subtask-row:hover { background: #fafafe; }
-.subtask-row:disabled { background: #fbfbfc; cursor: not-allowed; }
+.subtask-row--selected { background: #fafafe; }
+.subtask-row__check-button { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.subtask-row__check-button:disabled { cursor: not-allowed; }
+.subtask-row__check-button:disabled .subtask-row__check { opacity: 0.65; }
+.subtask-row__detail { display: flex; min-width: 0; flex: 1; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .subtask-row__number { color: #b2b2bc; font-family: "Onest", sans-serif; font-size: 9px; }
 .subtask-row__check { display: flex; width: 23px; height: 23px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid #d5d5de; border-radius: 6px; color: white; }
 .subtask-row--done .subtask-row__check { border-color: #25a889; background: #25a889; }
@@ -86,6 +90,9 @@
 .task-verification .primary-button { width: 100%; }
 .task-verification .primary-button:disabled { border-color: #c8c8d0; background: #c8c8d0; cursor: not-allowed; transform: none; }
 .task-verification__help { display: block; margin-top: 8px; color: #aaaab4; font-size: 8px; text-align: center; }
+.task-verification__reference { margin: 14px 0; }
+.task-verification__reference > span { display: block; margin-bottom: 6px; color: #4d4d58; font-size: 10px; font-weight: 600; }
+.task-verification__reference img { display: block; width: 100%; max-height: 150px; object-fit: cover; border-radius: 8px; }
 
 @media (max-width: 920px) {
   .task-detail-layout { grid-template-columns: 1fr; }

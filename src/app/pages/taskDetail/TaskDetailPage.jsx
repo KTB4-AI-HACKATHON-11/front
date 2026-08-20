@@ -19,6 +19,7 @@ export default function TaskDetailPage({ user }) {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [completedIds, setCompletedIds] = useState([]);
+  const [selectedSubTaskId, setSelectedSubTaskId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function TaskDetailPage({ user }) {
           );
           setTaskDetail({ ...data, checklists: nextChecklists });
           setCompletedIds(nextChecklists.filter((item) => item.performed).map((item) => String(item.checklistId)));
+          setSelectedSubTaskId((current) => current ?? String(nextChecklists[0]?.checklistId ?? ""));
         }
       } catch (error) {
         if (!cancelled) {
@@ -117,11 +119,10 @@ export default function TaskDetailPage({ user }) {
   };
 
   // 아직 수행되지 않은 PHOTO 체크리스트 항목 중 첫 번째 항목을 "완료 검증" 카드에서 검증할 기본 대상으로 사용합니다.
-  const pendingPhotoSubTask =
-    subTasks.find((item) => item.photo && !completedIds.includes(item.id)) ?? null;
+  const selectedSubTask = subTasks.find((item) => item.id === selectedSubTaskId) ?? subTasks[0] ?? null;
 
   const openPhotoVerification = (subTaskId) => {
-    const targetSubTaskId = subTaskId ?? pendingPhotoSubTask?.id;
+    const targetSubTaskId = subTaskId ?? selectedSubTask?.id;
     if (!targetSubTaskId) return;
     navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`);
   };
@@ -177,7 +178,14 @@ export default function TaskDetailPage({ user }) {
             <div><span><CheckCircle2 size={15} /></span><div><h2>수행 체크리스트</h2><p>항목을 누르면 수행 여부가 변경됩니다.</p></div></div>
             <strong>{completedIds.length} / {subTasks.length}</strong>
           </div>
-          <SubTaskList items={subTasks} completedIds={completedIds} onToggle={handleToggle} onPhotoOpen={openPhotoVerification} />
+          <SubTaskList
+            items={subTasks}
+            completedIds={completedIds}
+            selectedId={selectedSubTask?.id}
+            onSelect={setSelectedSubTaskId}
+            onToggle={handleToggle}
+            onPhotoOpen={openPhotoVerification}
+          />
           {errorMessage && (
             <p className="task-detail-content__error" role="alert">{errorMessage}</p>
           )}
@@ -185,7 +193,7 @@ export default function TaskDetailPage({ user }) {
             <div className="task-complete-message"><CheckCircle2 size={17} /> 모든 항목을 성공적으로 완료했습니다.</div>
           )}
         </section>
-        <VerificationCard subTask={pendingPhotoSubTask} onPhotoOpen={() => openPhotoVerification()} />
+        <VerificationCard subTask={selectedSubTask} onPhotoOpen={() => openPhotoVerification(selectedSubTask?.id)} />
       </div>
     </AppShell>
   );
