@@ -11,6 +11,13 @@ import SubTaskList from "./components/SubTaskList";
 import VerificationCard from "./components/VerificationCard";
 import "./TaskDetailPage.css";
 
+const taskStatusMap = {
+  WAITING: { label: "대기 중", className: "waiting" },
+  PENDING: { label: "대기 중", className: "waiting" },
+  IN_PROGRESS: { label: "진행 중", className: "active" },
+  COMPLETED: { label: "완료", className: "complete" },
+};
+
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,12 +150,13 @@ export default function TaskDetailPage({ user }) {
   }
 
   const groupPath = currentGroupId ?? currentGroup.id;
+  const taskStatus = taskStatusMap[taskDetail.status] ?? taskStatusMap.IN_PROGRESS;
 
   return (
     <AppShell
       user={user}
       title={currentTask.title}
-      description={`${currentGroup.name}에서 진행 중인 태스크의 수행 현황을 확인합니다.`}
+      description={`${currentGroup.name}에서 태스크의 수행 현황을 확인합니다.`}
       backTo={`/groups/${groupPath}`}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
@@ -160,11 +168,11 @@ export default function TaskDetailPage({ user }) {
       <section className="task-detail-hero page-card">
         <div className="task-detail-hero__main">
           <div className="task-detail-hero__badges">
-            <span className="status-pill status-pill--active">진행 중</span>
+            <span className={`status-pill status-pill--${taskStatus.className}`}>{taskStatus.label}</span>
             <span className="task-detail-id"><Copy size={12} /> TASK_ID · {taskId}</span>
           </div>
             <h2>{currentTask.title}</h2>
-            <p>담당자가 수행 중인 세부 체크리스트와 검증 상태를 한곳에서 확인할 수 있습니다.</p>
+            <p>세부 체크리스트와 검증 상태를 한곳에서 확인할 수 있습니다.</p>
           <div className="task-detail-hero__meta">
             <span><UserRound size={13} /> 담당자 <b>{currentTask.assignee}</b></span>
             <span><Clock3 size={13} /> 마감 <b>{currentTask.dueDate}</b></span>
