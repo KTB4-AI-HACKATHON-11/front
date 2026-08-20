@@ -69,34 +69,7 @@ export default function TaskDetailPage({ user }) {
       willComplete ? [...current, subTaskId] : current.filter((id) => id !== subTaskId)
     );
     try {
-      const result = await updateSubTaskStatus({
-        taskId,
-        subTaskId,
-        workerId: user.memberId,
-        performed: willComplete,
-      });
-      setCompletedIds((current) =>
-        result?.performed === willComplete
-          ? (willComplete ? [...new Set([...current, subTaskId])] : current.filter((id) => id !== subTaskId))
-          : current
-      );
-      setTaskDetail((current) => {
-        if (!current) return current;
-
-        const nextChecklists = current.checklists.map((item) =>
-          String(item.checklistId) === String(subTaskId)
-            ? { ...item, performed: result?.performed ?? willComplete, performedAt: result?.performedAt ?? null }
-            : item
-        );
-        const completedItemCount = nextChecklists.filter((item) => item.performed).length;
-
-        return {
-          ...current,
-          progress: nextChecklists.length ? Math.round((completedItemCount / nextChecklists.length) * 100) : 0,
-          status: result?.status ?? current.status,
-          checklists: nextChecklists,
-        };
-      });
+      await updateSubTaskStatus({ taskId, subTaskId, completed: willComplete });
     } catch (error) {
       setCompletedIds((current) =>
         willComplete ? current.filter((id) => id !== subTaskId) : [...current, subTaskId]
@@ -109,9 +82,14 @@ export default function TaskDetailPage({ user }) {
     }
   };
 
-  const openPhotoVerification = () => {
-    // TODO: 사진 검증이 필요한 SUB_TASK_ID를 촬영 화면에 함께 전달해야 합니다.
-    navigate(`/tasks/${taskId}/verify/photo`);
+  // 아직 수행되지 않은 PHOTO 체크리스트 항목 중 첫 번째 항목을 "완료 검증" 카드에서 검증할 기본 대상으로 사용합니다.
+  const pendingPhotoSubTask =
+    subTasks.find((item) => item.photo && !completedIds.includes(item.id)) ?? null;
+
+  const openPhotoVerification = (subTaskId) => {
+    const targetSubTaskId = subTaskId ?? pendingPhotoSubTask?.id;
+    if (!targetSubTaskId) return;
+    navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`);
   };
 
   const progress = taskDetail?.progress ?? (subTasks.length ? Math.round((completedIds.length / subTasks.length) * 100) : 0);
@@ -173,7 +151,7 @@ export default function TaskDetailPage({ user }) {
             <div className="task-complete-message"><CheckCircle2 size={17} /> 모든 항목을 성공적으로 완료했습니다.</div>
           )}
         </section>
-        <VerificationCard onPhotoOpen={openPhotoVerification} />
+        <VerificationCard subTask={pendingPhotoSubTask} onPhotoOpen={() => openPhotoVerification()} />
       </div>
     </AppShell>
   );

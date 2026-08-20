@@ -83,6 +83,7 @@
 .task-verification__checklist p:last-child { margin-bottom: 0; }
 .task-verification__checklist svg { color: #25a889; }
 .task-verification .primary-button { width: 100%; }
+.task-verification .primary-button:disabled { border-color: #c8c8d0; background: #c8c8d0; cursor: not-allowed; transform: none; }
 .task-verification__help { display: block; margin-top: 8px; color: #aaaab4; font-size: 8px; text-align: center; }
 
 @media (max-width: 920px) {

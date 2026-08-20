@@ -40,7 +40,7 @@ export default function App() {
         <Route path="/tasks/:taskId/verification" element={<TaskVerificationPage user={user} />} />
         <Route path="/tasks/:taskId" element={<TaskDetailPage user={user} />} />
         <Route
-          path="/tasks/:taskId/verify/photo"
+          path="/tasks/:taskId/verify/photo/:subTaskId"
           element={<PhotoVerificationPage user={user} />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
