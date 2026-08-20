@@ -38,7 +38,7 @@ export default function GroupListPage({ user }) {
 
           setTaskStats({
             active: allTasks.filter((task) => task.status !== "COMPLETED").length,
-            completedToday: null,
+            completedToday: 0,
           });
         }
       } catch (error) {
@@ -90,7 +90,7 @@ export default function GroupListPage({ user }) {
         <div className="group-overview__stats">
           <div><span>참여 그룹</span><strong>{groups.length}</strong></div>
           <div><span>진행 태스크</span><strong>{taskStats?.active ?? "-"}</strong></div>
-          <div><span>오늘 완료</span><strong className="is-green">{taskStats?.completedToday ?? "-"}</strong></div>
+          <div><span>오늘 완료</span><strong className="is-green">{taskStats?.completedToday ?? 0}</strong></div>
         </div>
       </section>
 
