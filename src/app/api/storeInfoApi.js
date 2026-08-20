@@ -1,5 +1,4 @@
 // 매장 정보(Store Info) 관련 API
-// TODO: 아래 엔드포인트는 아직 백엔드에 구현되어 있지 않습니다. 실제 경로/응답 형태가 확정되면 이 파일을 갱신해주세요.
 import { apiRequest } from "./client";
 
 /**
