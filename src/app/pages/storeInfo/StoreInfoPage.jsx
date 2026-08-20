@@ -198,7 +198,7 @@ export default function StoreInfoPage({ user }) {
     <AppShell
       user={user}
       title="매장 정보 관리"
-      description={`${currentGroup.name}의 알바생이 AI에게 물어볼 수 있는 매장 정보를 등록·관리합니다.`}
+      description={`${currentGroup.name}의 워커가 AI에게 물어볼 수 있는 매장 정보를 등록·관리합니다.`}
       backTo={`/groups/${groupId}`}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
@@ -258,7 +258,7 @@ export default function StoreInfoPage({ user }) {
           <div className="store-info-empty">
             <p>
               {items.length === 0
-                ? "아직 등록된 매장 정보가 없어요. 알바생이 AI에게 물어봐도 답변할 수 없으니 먼저 정보를 등록해주세요."
+                ? "아직 등록된 매장 정보가 없어요. 워커가 AI에게 물어봐도 답변할 수 없으니 먼저 정보를 등록해주세요."
                 : "이 카테고리에 등록된 정보가 없어요."}
             </p>
             <button className="secondary-button" type="button" onClick={() => setModalState({ mode: "create" })}>

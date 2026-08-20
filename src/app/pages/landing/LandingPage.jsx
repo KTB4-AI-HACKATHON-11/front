@@ -6,7 +6,7 @@ import "./LandingPage.css";
 
 const features = [
   { icon: Sparkles, number: "01", title: "말로 만드는 태스크", text: "업무 요구사항을 자연어로 입력하면 AI가 바로 수행할 수 있는 체크리스트로 나눕니다." },
-  { icon: UsersRound, number: "02", title: "그룹별 역할 관리", text: "같은 사람도 그룹에 따라 매니저 또는 알바로 참여하고 필요한 업무만 확인합니다." },
+  { icon: UsersRound, number: "02", title: "그룹별 역할 관리", text: "같은 사람도 그룹에 따라 매니저 또는 워커로 참여하고 필요한 업무만 확인합니다." },
   { icon: Camera, number: "03", title: "확실한 완료 검증", text: "사진이나 텍스트 기준을 설정해 현장에서 업무가 제대로 끝났는지 확인합니다." },
 ];
 

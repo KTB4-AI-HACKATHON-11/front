@@ -578,7 +578,7 @@ export default function TaskCreatePage({ user }) {
                     >
                       <span className={`member-avatar member-avatar--${member.color}`}>{member.initial}</span>
                       <strong>{member.name}</strong>
-                      <small>알바</small>
+                      <small>워커</small>
                     </button>
                   ))}
                 </div>
@@ -586,7 +586,7 @@ export default function TaskCreatePage({ user }) {
                   <p className="task-create-form__error" role="alert">멤버 목록을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.</p>
                 )}
                 {!membersLoadFailed && workerMembers.length === 0 && (
-                  <p className="task-create-field__meta"><span>이 그룹에는 아직 담당자로 지정할 수 있는 알바(WORKER) 멤버가 없습니다.</span></p>
+                  <p className="task-create-field__meta"><span>이 그룹에는 아직 담당자로 지정할 수 있는 워커(WORKER) 멤버가 없습니다.</span></p>
                 )}
               </div>
               <div className="task-create-field">

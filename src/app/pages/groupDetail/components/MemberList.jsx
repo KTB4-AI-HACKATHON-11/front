@@ -14,7 +14,7 @@ export default function MemberList({ members, onInvite }) {
           members.map((member) => (
             <div className="member-row" key={member.id}>
               <span className={`member-avatar member-avatar--${member.color}`}>{member.initial}</span>
-              <div><strong>{member.name}</strong><small>{member.role === "MANAGER" ? "매니저" : "알바"}</small></div>
+              <div><strong>{member.name}</strong><small>{member.role === "MANAGER" ? "매니저" : "워커"}</small></div>
               <span className={`status-pill status-pill--${member.role.toLowerCase()}`}>{member.role}</span>
               <button className="icon-button" title="멤버 메뉴"><MoreHorizontal size={16} /></button>
             </div>

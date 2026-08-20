@@ -89,7 +89,7 @@ export default function StoreInfoForm({ mode, initialValue, isSubmitting, errorM
               className="text-area"
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              placeholder="알바생이 물어봤을 때 AI가 그대로 답할 수 있도록 구체적으로 작성해주세요."
+              placeholder="워커가 물어봤을 때 AI가 그대로 답할 수 있도록 구체적으로 작성해주세요."
               maxLength={CONTENT_MAX_LENGTH}
               disabled={isSubmitting}
               required

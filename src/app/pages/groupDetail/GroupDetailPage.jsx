@@ -139,7 +139,7 @@ export default function GroupDetailPage({ user }) {
               <span className="status-pill status-pill--active">진행 중</span>
               {role && (
                 <span className={`status-pill status-pill--${role.toLowerCase()}`}>
-                  {canManage ? "매니저" : "알바"}
+                  {canManage ? "매니저" : "워커"}
                 </span>
               )}
               <span className={`group-id ${copied ? "group-id--copied" : ""}`}>
@@ -154,7 +154,7 @@ export default function GroupDetailPage({ user }) {
         </div>
         <div className="group-detail-summary__metrics">
           {groupDetail.memberCount != null && (
-            <div><span><Users size={13} /> 멤버</span><strong>{groupDetail.memberCount}명</strong><small>{groupDetail.managerCount}명 매니저 · {groupDetail.workerCount}명 알바</small></div>
+            <div><span><Users size={13} /> 멤버</span><strong>{groupDetail.memberCount}명</strong><small>{groupDetail.managerCount}명 매니저 · {groupDetail.workerCount}명 워커</small></div>
           )}
           <div><span><CalendarDays size={13} /> 활성 태스크</span><strong>{groupDetail.taskCount}개</strong></div>
           <div><span>전체 완료율</span><strong className="is-violet">{groupDetail.completionRate}%</strong></div>
