@@ -5,6 +5,7 @@ import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { getMyGroups } from "../../api/groupApi";
 import { getGroupTasks } from "../../api/taskApi";
+import { formatGroupId } from "../../lib/groupStorage";
 import GroupCard from "./components/GroupCard";
 import GroupJoinModal from "./components/GroupJoinModal";
 import "./GroupListPage.css";
@@ -123,7 +124,7 @@ export default function GroupListPage({ user }) {
               </p>
             )}
             {filteredGroups.map((group) => (
-              <GroupCard key={group.groupId} group={group} onOpen={() => navigate(`/groups/${group.groupId}`)} />
+              <GroupCard key={group.groupId} group={group} onOpen={() => navigate(`/groups/${formatGroupId(group.groupId)}`)} />
             ))}
           </>
         )}
@@ -139,7 +140,7 @@ export default function GroupListPage({ user }) {
           onClose={() => setIsJoinModalOpen(false)}
           onJoined={(groupId) => {
             setIsJoinModalOpen(false);
-            navigate(`/groups/${groupId}`);
+            navigate(`/groups/${formatGroupId(groupId)}`);
           }}
         />
       )}
