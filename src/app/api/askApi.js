@@ -6,15 +6,16 @@ import { apiRequest } from "./client";
 const ASK_TIMEOUT_MS = 65_000;
 
 /**
- * 매장 정보 기반 AI 질문
+ * DB 매장 정보 기반 AI 질문
  * POST /api/v1/knowledge/answer
- * @param {{ conversationId: string|number|null, question: string }} params
- * @returns {Promise<{ conversationId: string|number, answer: string }>}
+ * groupId의 매장 정보와 현재 conversationId의 대화 이력을 기반으로 답변합니다.
+ * @param {{ groupId: string|number, requesterId: number, conversationId: string, question: string }} params
+ * @returns {Promise<{ conversationId: string, answer: string }>}
  */
-export function askStoreQuestion({ conversationId, question }) {
+export function askStoreQuestion({ groupId, requesterId, conversationId, question }) {
   return apiRequest("/knowledge/answer", {
     method: "POST",
-    body: { conversationId, question },
+    body: { groupId, requesterId, conversationId, question },
     timeoutMs: ASK_TIMEOUT_MS,
   });
 }

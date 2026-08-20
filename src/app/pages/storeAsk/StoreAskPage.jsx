@@ -17,7 +17,7 @@ const SUGGESTED_QUESTIONS = [
   "마감할 때 확인해야 할 게 있나요?",
 ];
 
-// AI 백엔드 명세(POST /v1/knowledge/answer)의 question 필드 상한(1~200자)에 맞춥니다.
+// DB 매장 정보 기반 AI Q&A API의 question 필드 상한(1~200자)에 맞춥니다.
 const QUESTION_MAX_LENGTH = 200;
 
 function createConversationId() {
@@ -118,7 +118,12 @@ export default function StoreAskPage({ user }) {
     setIsAsking(true);
 
     try {
-      const result = await askStoreQuestion({ conversationId, question: trimmed });
+      const result = await askStoreQuestion({
+        groupId,
+        requesterId: user.memberId,
+        conversationId,
+        question: trimmed,
+      });
       const nextConversationId = result?.conversationId ?? conversationId;
       setConversationId(nextConversationId);
       setMessages((current) =>
