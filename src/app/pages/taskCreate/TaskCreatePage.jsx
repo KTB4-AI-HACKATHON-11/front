@@ -1,6 +1,6 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useBeforeUnload, useBlocker, useNavigate, useParams } from "react-router";
+import { useBeforeUnload, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
@@ -86,7 +86,6 @@ export default function TaskCreatePage({ user }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
   const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) && !generatedChecklist;
-  const blocker = useBlocker(hasUnsavedChanges);
   const hasValidMemberSession = Boolean(user?.memberId);
   const hasValidGroupId = /^\d+$/.test(groupId ?? "");
 
@@ -106,21 +105,6 @@ export default function TaskCreatePage({ user }) {
     );
   }, [assigneeId, defaultAssigneeId, generatedChecklist, groupId, message, title]);
 
-  useEffect(() => {
-    if (blocker.state !== "blocked") {
-      return;
-    }
-
-    const shouldLeave = window.confirm("작성 중인 내용이 있습니다. 이 페이지를 벗어나면 저장되지 않은 변경사항이 사라질 수 있습니다. 이동할까요?");
-
-    if (shouldLeave) {
-      blocker.proceed();
-      return;
-    }
-
-    blocker.reset();
-  }, [blocker]);
-
   useBeforeUnload((event) => {
     if (!hasUnsavedChanges) {
       return;
@@ -129,6 +113,14 @@ export default function TaskCreatePage({ user }) {
     event.preventDefault();
     event.returnValue = "";
   });
+
+  const confirmDiscardChanges = () => {
+    if (!hasUnsavedChanges) {
+      return true;
+    }
+
+    return window.confirm("작성 중인 내용이 있습니다. 이 페이지를 벗어나면 저장되지 않은 변경사항이 사라질 수 있습니다. 이동할까요?");
+  };
 
   const handleGenerate = async (event) => {
     event.preventDefault();
@@ -182,7 +174,13 @@ export default function TaskCreatePage({ user }) {
   };
 
   return (
-    <AppShell user={user} title="새 태스크 만들기" description="성수 플래그십 스토어" backTo={`/groups/${groupId}`}>
+    <AppShell
+      user={user}
+      title="새 태스크 만들기"
+      description="성수 플래그십 스토어"
+      backTo={`/groups/${groupId}`}
+      onBeforeNavigate={confirmDiscardChanges}
+    >
       {!hasValidMemberSession ? (
         <section className="page-card task-create-result">
           <div className="form-section-heading">

@@ -69,16 +69,34 @@ function buildBreadcrumbs(pathname, title) {
   return title ? [{ label: title, path: pathname, current: true }] : [];
 }
 
-export default function AppShell({ user, children, title, description, backTo, actions }) {
+export default function AppShell({ user, children, title, description, backTo, actions, onBeforeNavigate }) {
   const navigate = useNavigate();
   const location = useLocation();
   const brandPath = location.pathname.startsWith("/groups") || location.pathname.startsWith("/tasks") ? "/groups" : "/";
   const breadcrumbs = buildBreadcrumbs(location.pathname, title);
+  const confirmNavigation = () => (typeof onBeforeNavigate === "function" ? onBeforeNavigate() : true);
+  const handleNavigate = (path) => {
+    if (!confirmNavigation()) {
+      return;
+    }
+
+    navigate(path);
+  };
 
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <Link className="app-sidebar__brand" to={brandPath}>
+        <Link
+          className="app-sidebar__brand"
+          to={brandPath}
+          onClick={(event) => {
+            if (confirmNavigation()) {
+              return;
+            }
+
+            event.preventDefault();
+          }}
+        >
           <BrandMark compact />
         </Link>
 
@@ -91,7 +109,7 @@ export default function AppShell({ user, children, title, description, backTo, a
               <button
                 className={`app-sidebar__item ${isActive ? "app-sidebar__item--active" : ""}`}
                 key={label}
-                onClick={() => navigate(path)}
+                onClick={() => handleNavigate(path)}
               >
                 <Icon size={17} />
                 <span>{label}</span>
@@ -109,6 +127,10 @@ export default function AppShell({ user, children, title, description, backTo, a
           <button
             className="icon-button"
             onClick={() => {
+              if (!confirmNavigation()) {
+                return;
+              }
+
               clearStoredUser();
               navigate("/login");
             }}
@@ -123,7 +145,7 @@ export default function AppShell({ user, children, title, description, backTo, a
         <header className="app-header">
           <div className="app-header__title-wrap">
             {backTo && (
-              <button className="icon-button icon-button--bordered" onClick={() => navigate(backTo)} title="뒤로">
+              <button className="icon-button icon-button--bordered" onClick={() => handleNavigate(backTo)} title="뒤로">
                 <ChevronLeft size={19} />
               </button>
             )}
@@ -135,7 +157,18 @@ export default function AppShell({ user, children, title, description, backTo, a
                       {item.current ? (
                         <strong>{item.label}</strong>
                       ) : (
-                        <Link to={item.path}>{item.label}</Link>
+                        <Link
+                          to={item.path}
+                          onClick={(event) => {
+                            if (confirmNavigation()) {
+                              return;
+                            }
+
+                            event.preventDefault();
+                          }}
+                        >
+                          {item.label}
+                        </Link>
                       )}
                       {index < breadcrumbs.length - 1 ? <span className="app-breadcrumb__separator">/</span> : null}
                     </span>
