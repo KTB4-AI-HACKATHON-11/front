@@ -10,6 +10,12 @@ import "./GroupListPage.css";
 export default function GroupListPage({ user }) {
   const navigate = useNavigate();
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // 이미 불러온 그룹 목록(groups)에서 그룹명이 일치하는지 여부로만 클라이언트에서 필터링합니다.
+  const filteredGroups = groups.filter((group) =>
+    group.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
+  );
 
   return (
     <AppShell
@@ -43,16 +49,24 @@ export default function GroupListPage({ user }) {
       <div className="group-toolbar">
         <div>
           <h2>그룹 목록</h2>
-          <span>총 {groups.length}개</span>
+          <span>총 {filteredGroups.length}개</span>
         </div>
         <label className="group-search">
           <Search size={15} />
-          <input type="search" placeholder="그룹명 검색" />
+          <input
+            type="search"
+            placeholder="그룹명 검색"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
         </label>
       </div>
 
       <section className="group-grid">
-        {groups.map((group) => (
+        {filteredGroups.length === 0 && (
+          <p className="group-grid__empty">"{searchTerm}"와 일치하는 그룹이 없어요.</p>
+        )}
+        {filteredGroups.map((group) => (
           <GroupCard key={group.id} group={group} onOpen={() => navigate(`/groups/${group.id}`)} />
         ))}
         <button className="group-create-card" onClick={() => navigate("/groups/new")}>

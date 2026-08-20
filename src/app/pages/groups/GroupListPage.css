@@ -139,6 +139,14 @@
   gap: 14px;
 }
 
+.group-grid__empty {
+  grid-column: 1 / -1;
+  padding: 30px 0;
+  color: #9696a1;
+  font-size: 11px;
+  text-align: center;
+}
+
 .group-card,
 .group-create-card {
   position: relative;
