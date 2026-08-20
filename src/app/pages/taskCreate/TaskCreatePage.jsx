@@ -1,6 +1,6 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useBeforeUnload, useBlocker, useParams } from "react-router";
+import { useBeforeUnload, useBlocker, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
@@ -74,6 +74,7 @@ function validateTaskCreateForm({ title, message, assigneeId }) {
 }
 
 export default function TaskCreatePage({ user }) {
+  const navigate = useNavigate();
   const { groupId } = useParams();
   const workerMembers = members.filter((member) => member.role === "WORKER");
   const defaultAssigneeId = workerMembers[0]?.id ?? "";
@@ -86,6 +87,8 @@ export default function TaskCreatePage({ user }) {
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
   const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) && !generatedChecklist;
   const blocker = useBlocker(hasUnsavedChanges);
+  const hasValidMemberSession = Boolean(user?.memberId);
+  const hasValidGroupId = /^\d+$/.test(groupId ?? "");
 
   useEffect(() => {
     if (generatedChecklist) {
@@ -131,6 +134,16 @@ export default function TaskCreatePage({ user }) {
     event.preventDefault();
     if (isGenerating) return;
 
+    if (!hasValidMemberSession) {
+      setErrorMessage("로그인 정보가 없어 태스크를 생성할 수 없습니다. 다시 로그인해주세요.");
+      return;
+    }
+
+    if (!hasValidGroupId) {
+      setErrorMessage("유효하지 않은 그룹입니다. 그룹 목록으로 돌아가 다시 시도해주세요.");
+      return;
+    }
+
     const nextErrorMessage = validateTaskCreateForm({ title, message, assigneeId });
     if (nextErrorMessage) {
       setErrorMessage(nextErrorMessage);
@@ -154,11 +167,15 @@ export default function TaskCreatePage({ user }) {
         assigneeName: workerMembers.find((member) => member.id === assigneeId)?.name ?? "",
       });
     } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "체크리스트 생성에 실패했습니다. 잠시 후 다시 시도해주세요."
-      );
+      if (error instanceof ApiError) {
+        if (error.message === "그룹에 접근할 수 없습니다.") {
+          setErrorMessage("현재 로그인한 계정으로는 이 그룹에서 태스크를 생성할 수 없습니다. 그룹에 다시 참여했는지 확인해주세요.");
+        } else {
+          setErrorMessage(error.message);
+        }
+      } else {
+        setErrorMessage("체크리스트 생성에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -166,7 +183,33 @@ export default function TaskCreatePage({ user }) {
 
   return (
     <AppShell user={user} title="새 태스크 만들기" description="성수 플래그십 스토어" backTo={`/groups/${groupId}`}>
-      {generatedChecklist ? (
+      {!hasValidMemberSession ? (
+        <section className="page-card task-create-result">
+          <div className="form-section-heading">
+            <span>LOGIN REQUIRED</span>
+            <h2>다시 로그인해주세요</h2>
+            <p>현재 세션에는 `memberId`가 없어 실제 태스크 생성 API를 호출할 수 없습니다.</p>
+          </div>
+          <div className="task-create-result__actions">
+            <button className="primary-button" type="button" onClick={() => navigate("/login")}>
+              로그인으로 이동
+            </button>
+          </div>
+        </section>
+      ) : !hasValidGroupId ? (
+        <section className="page-card task-create-result">
+          <div className="form-section-heading">
+            <span>INVALID GROUP</span>
+            <h2>유효하지 않은 그룹입니다</h2>
+            <p>태스크 생성은 숫자형 그룹 ID에서만 진행할 수 있습니다.</p>
+          </div>
+          <div className="task-create-result__actions">
+            <button className="primary-button" type="button" onClick={() => navigate("/groups")}>
+              그룹 목록으로 이동
+            </button>
+          </div>
+        </section>
+      ) : generatedChecklist ? (
         <section className="page-card task-create-result">
           <div className="form-section-heading">
             <span>AI CHECKLIST</span>
