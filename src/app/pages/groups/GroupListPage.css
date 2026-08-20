@@ -112,6 +112,16 @@
   font-size: 11px;
 }
 
+.group-toolbar__error {
+  margin: 0 0 15px;
+  padding: 10px 12px;
+  border: 1px solid #f3c6c6;
+  border-radius: 8px;
+  background: #fdf2f2;
+  color: #c23a3a;
+  font-size: 11px;
+}
+
 .group-search {
   display: flex;
   width: 210px;
@@ -151,7 +161,7 @@
 .group-create-card {
   position: relative;
   overflow: hidden;
-  min-height: 267px;
+  min-height: 148px;
   padding: 21px;
   border: 1px solid #e4e4eb;
   border-radius: 8px;
@@ -167,16 +177,6 @@
   transform: translateY(-2px);
 }
 
-.group-card__accent {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-}
-
-.group-card__accent--mint { background: #2aaa8b; }
-.group-card__accent--blue { background: #5595d6; }
-.group-card__accent--coral { background: #ec7b67; }
-
 .group-card__heading {
   display: flex;
   align-items: flex-start;
@@ -184,14 +184,15 @@
   gap: 10px;
 }
 
-.group-card__badges {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.group-card__id {
+  display: block;
+  color: #9696a1;
+  font-size: 9px;
+  font-weight: 600;
 }
 
 .group-card__heading h2 {
-  margin: 10px 0 0;
+  margin: 5px 0 0;
   color: #22222b;
   font-family: "Onest", sans-serif;
   font-size: 16px;
@@ -202,6 +203,7 @@
   display: flex;
   width: 30px;
   height: 30px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border-radius: 7px;
@@ -215,58 +217,10 @@
 
 .group-card__description {
   min-height: 38px;
-  margin: 10px 0 15px;
+  margin: 12px 0 0;
   color: #7e7e8a;
   font-size: 11px;
   line-height: 1.55;
-}
-
-.group-card__meta {
-  display: flex;
-  gap: 14px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #eeeeF2;
-}
-
-.group-card__meta span,
-.group-card__progress-heading span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #8e8e99;
-  font-size: 10px;
-}
-
-.group-card__progress-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 15px;
-}
-
-.group-card__progress-heading strong {
-  color: #4f4f5a;
-  font-size: 12px;
-}
-
-.group-card__progress {
-  height: 6px;
-  margin: 8px 0 7px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #efeff3;
-}
-
-.group-card__progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: #6255e7;
-}
-
-.group-card > small {
-  color: #aaaab4;
-  font-size: 9px;
 }
 
 .group-create-card {

@@ -27,3 +27,14 @@ export function joinGroup({ memberId, groupId }) {
     body: { memberId, groupId },
   });
 }
+
+/**
+ * 내 그룹 목록 조회
+ * GET /api/v1/members/{memberId}/groups
+ * 회원이 가입한 그룹을 offset과 limit 기준으로 잘라 조회합니다.
+ * @param {{ memberId: number, offset?: number, limit?: number }} params
+ * @returns {Promise<Array<{ groupId: number, name: string, description: string }>>}
+ */
+export function getMyGroups({ memberId, offset = 0, limit = 20 }) {
+  return apiRequest(`/members/${memberId}/groups?offset=${offset}&limit=${limit}`);
+}

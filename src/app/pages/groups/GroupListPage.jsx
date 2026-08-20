@@ -1,9 +1,9 @@
 import { Plus, Search, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
-import { groups } from "../../data/mockData";
-import { mergeGroups } from "../../lib/groupStorage";
+import { ApiError } from "../../api/client";
+import { getMyGroups } from "../../api/groupApi";
 import GroupCard from "./components/GroupCard";
 import GroupJoinModal from "./components/GroupJoinModal";
 import "./GroupListPage.css";
@@ -12,10 +12,40 @@ export default function GroupListPage({ user }) {
   const navigate = useNavigate();
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const mergedGroups = mergeGroups(groups);
+  const [groups, setGroups] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadGroups() {
+      setIsLoading(true);
+      setErrorMessage("");
+      try {
+        const data = await getMyGroups({ memberId: user.memberId });
+        if (!cancelled) setGroups(data ?? []);
+      } catch (error) {
+        if (!cancelled) {
+          setErrorMessage(
+            error instanceof ApiError
+              ? error.message
+              : "그룹 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    loadGroups();
+    return () => {
+      cancelled = true;
+    };
+  }, [user.memberId]);
 
   // 이미 불러온 그룹 목록(groups)에서 그룹명이 일치하는지 여부로만 클라이언트에서 필터링합니다.
-  const filteredGroups = mergedGroups.filter((group) =>
+  const filteredGroups = groups.filter((group) =>
     group.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
   );
 
@@ -42,7 +72,7 @@ export default function GroupListPage({ user }) {
           <p>참여 중인 그룹의 업무 진행 상황을 한눈에 확인하세요.</p>
         </div>
         <div className="group-overview__stats">
-          <div><span>참여 그룹</span><strong>3</strong></div>
+          <div><span>참여 그룹</span><strong>{groups.length}</strong></div>
           <div><span>진행 태스크</span><strong>8</strong></div>
           <div><span>오늘 완료</span><strong className="is-green">5</strong></div>
         </div>
@@ -60,17 +90,28 @@ export default function GroupListPage({ user }) {
             placeholder="그룹명 검색"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
+            disabled={isLoading}
           />
         </label>
       </div>
 
+      {errorMessage && <p className="group-toolbar__error" role="alert">{errorMessage}</p>}
+
       <section className="group-grid">
-        {filteredGroups.length === 0 && (
-          <p className="group-grid__empty">"{searchTerm}"와 일치하는 그룹이 없어요.</p>
+        {isLoading ? (
+          <p className="group-grid__empty">그룹 목록을 불러오는 중이에요...</p>
+        ) : (
+          <>
+            {filteredGroups.length === 0 && !errorMessage && (
+              <p className="group-grid__empty">
+                {groups.length === 0 ? "아직 참여 중인 그룹이 없어요." : `"${searchTerm}"와 일치하는 그룹이 없어요.`}
+              </p>
+            )}
+            {filteredGroups.map((group) => (
+              <GroupCard key={group.groupId} group={group} onOpen={() => navigate(`/groups/${group.groupId}`)} />
+            ))}
+          </>
         )}
-        {filteredGroups.map((group) => (
-          <GroupCard key={group.id} group={group} onOpen={() => navigate(`/groups/${group.id}`)} />
-        ))}
         <button className="group-create-card" onClick={() => navigate("/groups/new")}>
           <span><Plus size={20} /></span>
           <strong>새 그룹 만들기</strong>
