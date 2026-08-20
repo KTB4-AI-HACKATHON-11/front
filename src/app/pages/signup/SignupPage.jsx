@@ -5,6 +5,7 @@ import BrandMark from "../../components/BrandMark";
 import NicknamePreview from "./components/NicknamePreview";
 import RoleSelector from "./components/RoleSelector";
 import { ApiError } from "../../api/client";
+import { signupMember } from "../../api/memberApi";
 import "./SignupPage.css";
 
 export default function SignupPage({ onSignup }) {
