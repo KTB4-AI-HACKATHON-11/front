@@ -2,6 +2,7 @@ import { CheckCircle2, Clock3, Copy, MoreHorizontal, UserRound } from "lucide-re
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
+import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { updateSubTaskStatus } from "../../api/taskApi";
 import { groups, subTasks, tasks } from "../../data/mockData";
@@ -12,7 +13,7 @@ import "./TaskDetailPage.css";
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
   const { taskId } = useParams();
-  const currentTask = tasks.find((task) => task.id === taskId) ?? tasks[0];
+  const currentTask = tasks.find((task) => task.id === taskId);
   const currentGroup = groups[0];
   const [completedIds, setCompletedIds] = useState(subTasks.filter((item) => item.completed).map((item) => item.id));
   const [errorMessage, setErrorMessage] = useState("");
@@ -46,6 +47,10 @@ export default function TaskDetailPage({ user }) {
   };
 
   const progress = Math.round((completedIds.length / subTasks.length) * 100);
+
+  if (!currentTask) {
+    return <StatusState user={user} type="task" description={`요청하신 태스크(${taskId})를 찾을 수 없습니다. 태스크 ID를 다시 확인해주세요.`} />;
+  }
 
   return (
     <AppShell

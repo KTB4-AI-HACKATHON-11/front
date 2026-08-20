@@ -2,6 +2,7 @@ import { CalendarDays, Check, Copy, Plus, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
+import StatusState from "../../components/StatusState";
 import { groups, members, tasks } from "../../data/mockData";
 import { mergeGroups } from "../../lib/groupStorage";
 import GroupInviteModal from "./components/GroupInviteModal";
@@ -29,18 +30,7 @@ export default function GroupDetailPage({ user }) {
   };
 
   if (!currentGroup) {
-    return (
-      <AppShell user={user} title="그룹을 찾을 수 없어요" description="그룹 ID를 다시 확인해주세요." backTo="/groups">
-        <section className="group-detail-notfound page-card">
-          <p>
-            요청하신 그룹(<strong>{groupId}</strong>)을 찾을 수 없습니다.
-            <br />
-            그룹 ID를 다시 확인하거나, 그룹 목록으로 돌아가주세요.
-          </p>
-          <button className="primary-button" onClick={() => navigate("/groups")}>그룹 목록으로 이동</button>
-        </section>
-      </AppShell>
-    );
+    return <StatusState user={user} type="group" description={`요청하신 그룹(${groupId})을 찾을 수 없습니다. 그룹 ID를 다시 확인해주세요.`} />;
   }
 
   const canManage = currentGroup.currentUserRole === "MANAGER";

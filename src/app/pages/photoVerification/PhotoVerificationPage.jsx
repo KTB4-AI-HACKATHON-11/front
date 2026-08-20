@@ -1,7 +1,8 @@
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
+import StatusState from "../../components/StatusState";
 import { groups, tasks } from "../../data/mockData";
 import CameraFrame from "./components/CameraFrame";
 import SuccessResult from "./components/SuccessResult";
@@ -25,7 +26,8 @@ const MOCK_VERIFY_PROGRESS_STEP_MS = 30;
 
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
-  const currentTask = tasks[0];
+  const { taskId } = useParams();
+  const currentTask = tasks.find((task) => task.id === taskId);
   const currentGroup = groups[0];
   const [captured, setCaptured] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -78,6 +80,10 @@ export default function PhotoVerificationPage({ user }) {
     }, MOCK_VERIFY_DELAY_MS);
   };
 
+  if (!currentTask) {
+    return <StatusState user={user} type="task" description={`요청하신 태스크(${taskId})의 사진 검증 화면을 찾을 수 없습니다.`} />;
+  }
+
   return (
     <AppShell
       user={user}
@@ -94,7 +100,7 @@ export default function PhotoVerificationPage({ user }) {
       <div className={`photo-verification-layout ${verified || verifying ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
           {verified ? (
-            <SuccessResult matchScore={verificationResult?.matchScore} onConfirm={() => navigate("/tasks/task-101")} />
+            <SuccessResult matchScore={verificationResult?.matchScore} onConfirm={() => navigate(`/tasks/${currentTask.id}`)} />
           ) : verifying ? (
             <VerifyingState progress={verifyProgress} />
           ) : (
@@ -118,7 +124,7 @@ export default function PhotoVerificationPage({ user }) {
               <p><CheckCircle2 size={14} /><span><strong>메인 진열대</strong><small>상품과 진열 상태를 식별할 수 있는 선명도</small></span></p>
             </div>
             <button className="primary-button" disabled={!captured} onClick={handleVerify}><ShieldCheck size={15} /> 사진으로 검증하기</button>
-            <button className="ghost-button" onClick={() => navigate("/tasks/task-101")}>나중에 검증하기</button>
+            <button className="ghost-button" onClick={() => navigate(`/tasks/${currentTask.id}`)}>나중에 검증하기</button>
           </aside>
         )}
       </div>

@@ -1,7 +1,8 @@
 import { ArrowRight, Camera, Check, ChevronLeft, ShieldCheck, ShieldOff } from "lucide-react";
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
+import StatusState from "../../components/StatusState";
 import { groups, members, tasks } from "../../data/mockData";
 import "./TaskVerificationPage.css";
 
@@ -106,8 +107,9 @@ function validateVerificationForm({ assigneeId, dueDate, items, enabled, rules }
 
 export default function TaskVerificationPage({ user }) {
   const navigate = useNavigate();
+  const { taskId } = useParams();
   const { state } = useLocation();
-  const currentTask = tasks.find((task) => task.title === state?.taskTitle) ?? tasks[0];
+  const currentTask = tasks.find((task) => task.id === taskId);
   const currentGroup = groups[0];
   const items = state?.items || fallbackItems;
   const workers = members.filter((member) => member.role === "WORKER");
@@ -136,8 +138,12 @@ export default function TaskVerificationPage({ user }) {
 
     setErrorMessage("");
     // TODO: 담당 워커, 마감일시, TASK_ID, SUB_TASK_ID별 검증 설정을 서버에 저장해야 합니다.
-    navigate("/tasks/task-101");
+    navigate(`/tasks/${taskId}`);
   };
+
+  if (!currentTask) {
+    return <StatusState user={user} type="task" description={`요청하신 태스크(${taskId})의 검증 설정을 찾을 수 없습니다.`} />;
+  }
 
   return (
     <AppShell

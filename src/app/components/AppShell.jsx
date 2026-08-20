@@ -72,6 +72,7 @@ function buildBreadcrumbs(pathname, title) {
 export default function AppShell({ user, children, title, description, backTo, actions, onBeforeNavigate, breadcrumbs }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const displayUser = user ?? { nickname: "CheckOn 멤버", email: "" };
   const brandPath = location.pathname.startsWith("/groups") || location.pathname.startsWith("/tasks") ? "/groups" : "/";
   const resolvedBreadcrumbs = breadcrumbs?.length ? breadcrumbs : buildBreadcrumbs(location.pathname, title);
   const confirmNavigation = () => (typeof onBeforeNavigate === "function" ? onBeforeNavigate() : true);
@@ -119,10 +120,10 @@ export default function AppShell({ user, children, title, description, backTo, a
         </nav>
 
         <div className="app-sidebar__profile">
-          <div className="app-sidebar__avatar">{user.nickname.slice(0, 1)}</div>
+          <div className="app-sidebar__avatar">{displayUser.nickname.slice(0, 1)}</div>
           <div className="app-sidebar__profile-copy">
-            <strong>{user.nickname}</strong>
-            <span>{user.email || "CheckOn 멤버"}</span>
+            <strong>{displayUser.nickname}</strong>
+            <span>{displayUser.email || "CheckOn 멤버"}</span>
           </div>
           <button
             className="icon-button"

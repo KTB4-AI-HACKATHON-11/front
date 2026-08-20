@@ -1,0 +1,42 @@
+.status-state {
+  display: flex;
+  min-height: 320px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.status-state__icon {
+  display: flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: #f1f0ff;
+  color: #6255e7;
+}
+
+.status-state__eyebrow {
+  color: #6255e7;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.status-state h2 {
+  margin: 7px 0 6px;
+  font-family: "Onest", sans-serif;
+  font-size: 20px;
+}
+
+.status-state p {
+  max-width: 390px;
+  margin: 0 0 20px;
+  color: #858590;
+  font-size: 11px;
+  line-height: 1.65;
+}

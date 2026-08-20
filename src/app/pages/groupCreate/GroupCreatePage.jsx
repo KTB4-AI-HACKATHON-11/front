@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { useBeforeUnload } from "react-router";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
+import StatusState from "../../components/StatusState";
 import GroupGuide from "./components/GroupGuide";
 import { ApiError } from "../../api/client";
 import { createGroup } from "../../api/groupApi";
@@ -134,6 +135,10 @@ export default function GroupCreatePage({ user }) {
       setIsSubmitting(false);
     }
   };
+
+  if (!user?.memberId) {
+    return <StatusState type="login" user={user} description="로그인 정보가 없어 그룹을 생성할 수 없습니다. 로그인 후 다시 시도해주세요." />;
+  }
 
   return (
     <AppShell

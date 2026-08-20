@@ -2,6 +2,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useBeforeUnload, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
+import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
 import { groups } from "../../data/mockData";
@@ -88,9 +89,10 @@ export default function TaskCreatePage({ user }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
+  const [accessDenied, setAccessDenied] = useState(false);
   const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) && !generatedChecklist;
   const hasValidMemberSession = Boolean(user?.memberId);
-  const hasValidGroupId = /^\d+$/.test(groupId ?? "");
+  const hasValidGroupId = /^\d+$/.test(groupId ?? "") && Boolean(currentGroup);
 
   useEffect(() => {
     if (generatedChecklist) {
@@ -164,7 +166,7 @@ export default function TaskCreatePage({ user }) {
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.message === "그룹에 접근할 수 없습니다.") {
-          setErrorMessage("현재 로그인한 계정으로는 이 그룹에서 태스크를 생성할 수 없습니다. 그룹에 다시 참여했는지 확인해주세요.");
+          setAccessDenied(true);
         } else {
           setErrorMessage(error.message);
         }
@@ -190,31 +192,11 @@ export default function TaskCreatePage({ user }) {
       ]}
     >
       {!hasValidMemberSession ? (
-        <section className="page-card task-create-result">
-          <div className="form-section-heading">
-            <span>LOGIN REQUIRED</span>
-            <h2>다시 로그인해주세요</h2>
-            <p>현재 세션에는 `memberId`가 없어 실제 태스크 생성 API를 호출할 수 없습니다.</p>
-          </div>
-          <div className="task-create-result__actions">
-            <button className="primary-button" type="button" onClick={() => navigate("/login")}>
-              로그인으로 이동
-            </button>
-          </div>
-        </section>
+        <StatusState type="login" user={user} embedded />
       ) : !hasValidGroupId ? (
-        <section className="page-card task-create-result">
-          <div className="form-section-heading">
-            <span>INVALID GROUP</span>
-            <h2>유효하지 않은 그룹입니다</h2>
-            <p>태스크 생성은 숫자형 그룹 ID에서만 진행할 수 있습니다.</p>
-          </div>
-          <div className="task-create-result__actions">
-            <button className="primary-button" type="button" onClick={() => navigate("/groups")}>
-              그룹 목록으로 이동
-            </button>
-          </div>
-        </section>
+        <StatusState type="group" user={user} embedded />
+      ) : accessDenied ? (
+        <StatusState type="access" user={user} embedded description="현재 로그인한 계정으로는 이 그룹에서 태스크를 생성할 수 없습니다. 그룹에 다시 참여했는지 확인해주세요." />
       ) : generatedChecklist ? (
         <section className="page-card task-create-result">
           <div className="form-section-heading">
