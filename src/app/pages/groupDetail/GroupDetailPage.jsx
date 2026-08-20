@@ -1,8 +1,9 @@
-import { CalendarDays, Check, Copy, Plus, Users } from "lucide-react";
+import { CalendarDays, Check, Copy, Plus, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { groups, members, tasks } from "../../data/mockData";
+import GroupInviteModal from "./components/GroupInviteModal";
 import MemberList from "./components/MemberList";
 import TaskCard from "./components/TaskCard";
 import "./GroupDetailPage.css";
@@ -11,6 +12,7 @@ export default function GroupDetailPage({ user }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
   const [copied, setCopied] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const currentGroup = groups.find((group) => group.id === groupId) || groups[0];
   const canManage = currentGroup.currentUserRole === "MANAGER";
 
@@ -31,11 +33,16 @@ export default function GroupDetailPage({ user }) {
       description="오픈 준비부터 마감 점검까지 현장 운영 업무를 관리합니다."
       backTo="/groups"
       actions={
-        canManage && (
-        <button className="primary-button" onClick={() => navigate(`/groups/${groupId}/tasks/new`)}>
-            <Plus size={16} /><span>새 태스크</span>
+        <div className="group-detail-actions">
+          <button className="secondary-button" onClick={() => setIsInviteModalOpen(true)}>
+            <UserPlus size={16} /><span>그룹 초대</span>
           </button>
-        )
+          {canManage && (
+            <button className="primary-button" onClick={() => navigate(`/groups/${groupId}/tasks/new`)}>
+              <Plus size={16} /><span>새 태스크</span>
+            </button>
+          )}
+        </div>
       }
     >
       <section className="group-detail-summary page-card">
@@ -73,6 +80,9 @@ export default function GroupDetailPage({ user }) {
         </section>
         <MemberList members={members} />
       </div>
+      {isInviteModalOpen && (
+        <GroupInviteModal groupId={groupId} onClose={() => setIsInviteModalOpen(false)} />
+      )}
     </AppShell>
   );
 }

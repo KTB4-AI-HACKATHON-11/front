@@ -1,3 +1,29 @@
+.group-detail-actions { display: flex; align-items: center; gap: 8px; }
+
+.group-invite-modal__backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(28, 27, 45, 0.34); }
+.group-invite-modal { width: min(100%, 440px); padding: 24px; border: 1px solid #e4e3ee; border-radius: 10px; background: white; box-shadow: 0 18px 50px rgba(34, 31, 74, 0.18); }
+.group-invite-modal__header { display: flex; align-items: center; justify-content: space-between; }
+.group-invite-modal__icon { display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 8px; background: #eeecff; color: #6255e7; }
+.group-invite-modal__heading { margin: 18px 0 20px; }
+.group-invite-modal__heading > span { color: #6255e7; font-size: 9px; font-weight: 700; }
+.group-invite-modal__heading h2 { margin: 6px 0 4px; font-family: "Onest", sans-serif; font-size: 18px; }
+.group-invite-modal__heading p { margin: 0; color: #90909c; font-size: 11px; line-height: 1.55; }
+.group-invite-modal__code { display: flex; flex-direction: column; align-items: center; padding: 22px 16px; border: 1px dashed #ddd9fa; border-radius: 10px; background: #f7f6ff; text-align: center; }
+.group-invite-modal__code-label { color: #8a80d9; font-size: 10px; font-weight: 700; }
+.group-invite-modal__code-value { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.group-invite-modal__code-value strong { color: #3f3349; font-family: "Onest", sans-serif; font-size: 34px; font-weight: 700; letter-spacing: 4px; }
+.group-invite-modal__code-copy { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border: 1px solid #ddd9fa; border-radius: 8px; background: white; color: #5c50d8; cursor: pointer; }
+.group-invite-modal__code-copy:hover { background: #eeecff; }
+.group-invite-modal__code-copy.is-copied { border-color: #ccebe3; background: #eaf8f4; color: #16876f; }
+.group-invite-modal__code-hint { margin-top: 6px; color: #16876f; font-size: 9px; }
+.group-invite-modal__divider { display: flex; align-items: center; gap: 8px; margin: 18px 0 10px; color: #b9b9c3; font-size: 9px; }
+.group-invite-modal__divider::before, .group-invite-modal__divider::after { flex: 1; height: 1px; background: #ececf2; content: ""; }
+.group-invite-modal__link-row { display: flex; gap: 8px; }
+.group-invite-modal__link-row .text-input { flex: 1; min-width: 0; color: #6a6a75; font-size: 10px; }
+.group-invite-modal__copy-button { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; padding: 0 12px; border: 1px solid #ddd9fa; border-radius: 8px; background: #f7f6ff; color: #5c50d8; font-size: 10px; font-weight: 600; cursor: pointer; }
+.group-invite-modal__copy-button:hover { background: #eeecff; }
+.group-invite-modal__actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+
 .group-detail-summary {
   display: flex;
   min-height: 114px;
