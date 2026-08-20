@@ -1,7 +1,9 @@
 import { ArrowUpRight, CheckCircle2, ListChecks, Users } from "lucide-react";
 
 export default function GroupCard({ group, onOpen }) {
-  const progress = Math.round((group.completedCount / group.taskCount) * 100);
+  const progress = group.taskCount > 0
+    ? Math.round((group.completedCount / group.taskCount) * 100)
+    : 0;
 
   return (
     <button className="group-card" onClick={onOpen}>
