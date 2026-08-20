@@ -13,8 +13,8 @@ export default function ManagerReviewPanel({
   return (
     <section className="manager-review-panel page-card">
       <div className="manager-review-panel__heading">
-        <div>
-          <span><UserCheck size={15} /></span>
+        <div className="manager-review-panel__intro">
+          <span className="manager-review-panel__icon"><UserCheck size={17} /></span>
           <div><h2>매니저 확인 요청</h2><p>AI 검증이 반복 실패한 사진을 직접 판정합니다.</p></div>
         </div>
         <button className="secondary-button" type="button" onClick={onEnableNotifications}>

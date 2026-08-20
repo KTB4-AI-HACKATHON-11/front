@@ -590,11 +590,13 @@
   .task-card__progress-wrap { display: none; }
   .member-list { grid-template-columns: 1fr; }
 }
-.manager-review-panel { margin-bottom: 20px; }
-.manager-review-panel__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.manager-review-panel__heading > div { display: flex; align-items: center; gap: 10px; }
+.manager-review-panel { margin-bottom: 20px; padding: 20px 22px 22px; }
+.manager-review-panel__heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.manager-review-panel__intro { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.manager-review-panel__icon { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: #f0eeff; color: #6255e7; }
+.manager-review-panel__heading > .secondary-button { flex: 0 0 auto; }
 .manager-review-panel__heading h2 { margin: 0; font-size: 17px; }
-.manager-review-panel__heading p { margin: 3px 0 0; color: var(--muted-foreground); font-size: 13px; }
+.manager-review-panel__heading p { margin: 4px 0 0; color: var(--muted-foreground); font-size: 13px; line-height: 1.5; }
 .manager-review-panel__notice { margin: 12px 0 0; color: #16876f; font-size: 13px; }
 .manager-review-list { display: grid; gap: 10px; margin-top: 16px; }
 .manager-review-row { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; }
@@ -608,7 +610,9 @@
 .manager-review-row__actions button { white-space: nowrap; }
 
 @media (max-width: 720px) {
-  .manager-review-panel__heading { align-items: flex-start; flex-direction: column; }
+  .manager-review-panel { padding: 16px; }
+  .manager-review-panel__heading { align-items: stretch; flex-direction: column; gap: 14px; }
+  .manager-review-panel__heading > .secondary-button { width: 100%; }
   .manager-review-row { grid-template-columns: 72px minmax(0, 1fr); }
   .manager-review-row__photo { width: 72px; }
   .manager-review-row__actions { grid-column: 1 / -1; }
