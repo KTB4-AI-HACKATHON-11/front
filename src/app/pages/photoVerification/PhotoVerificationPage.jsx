@@ -273,6 +273,7 @@ export default function PhotoVerificationPage({ user }) {
             <ReviewRequested onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })} />
           ) : verificationResult?.success ? (
             <SuccessResult
+              reason={verificationResult.reason}
               description={subTask.instruction ? `${subTask.instruction} 기준으로 확인되었습니다.` : undefined}
               onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId, verifiedChecklistId: subTaskId } })}
             />
