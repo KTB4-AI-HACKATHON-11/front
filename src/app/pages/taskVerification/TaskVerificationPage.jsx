@@ -2,7 +2,7 @@ import { ArrowRight, Camera, Check, ChevronLeft, ShieldCheck, ShieldOff } from "
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
-import { members } from "../../data/mockData";
+import { groups, members, tasks } from "../../data/mockData";
 import "./TaskVerificationPage.css";
 
 const fallbackItems = [
@@ -107,6 +107,8 @@ function validateVerificationForm({ assigneeId, dueDate, items, enabled, rules }
 export default function TaskVerificationPage({ user }) {
   const navigate = useNavigate();
   const { state } = useLocation();
+  const currentTask = tasks.find((task) => task.title === state?.taskTitle) ?? tasks[0];
+  const currentGroup = groups[0];
   const items = state?.items || fallbackItems;
   const workers = members.filter((member) => member.role === "WORKER");
   const defaultAssigneeId = workers[0]?.id ?? "";
@@ -138,13 +140,24 @@ export default function TaskVerificationPage({ user }) {
   };
 
   return (
-    <AppShell user={user} title="태스크 검증 설정" description={state?.taskTitle || "오픈 전 매장 점검"} backTo="/tasks/new">
+    <AppShell
+      user={user}
+      title="검증 기준 설정"
+      description={`${currentTask.title}의 완료 기준과 담당자를 최종 설정합니다.`}
+      backTo={`/tasks/${currentTask.id}`}
+      breadcrumbs={[
+        { label: "내 그룹", path: "/groups" },
+        { label: currentGroup.name, path: `/groups/${currentGroup.id}` },
+        { label: currentTask.title, path: `/tasks/${currentTask.id}` },
+        { label: "검증 기준 설정", path: `/tasks/${currentTask.id}/verification`, current: true },
+      ]}
+    >
       <div className="task-verification-page">
         <form className="task-verification-form" onSubmit={handleSave}>
           <div className="task-verification-form__heading">
             <span><ShieldCheck size={14} /> AI CHECKLIST</span>
-            <h2>체크리스트별 검증 기준</h2>
-            <p>각 항목이 완료되었다고 판단할 기준을 설정해주세요.</p>
+            <h2>{currentTask.title} 검증 기준</h2>
+            <p>각 체크리스트를 어떤 방식으로 완료 처리할지 마지막 기준을 정리합니다.</p>
           </div>
 
           <div className="task-verification-assignment">

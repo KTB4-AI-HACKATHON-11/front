@@ -2,6 +2,7 @@ import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
+import { groups, tasks } from "../../data/mockData";
 import CameraFrame from "./components/CameraFrame";
 import SuccessResult from "./components/SuccessResult";
 import VerifyingState from "./components/VerifyingState";
@@ -24,6 +25,8 @@ const MOCK_VERIFY_PROGRESS_STEP_MS = 30;
 
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
+  const currentTask = tasks[0];
+  const currentGroup = groups[0];
   const [captured, setCaptured] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const [verifying, setVerifying] = useState(false);
@@ -76,7 +79,18 @@ export default function PhotoVerificationPage({ user }) {
   };
 
   return (
-    <AppShell user={user} title="사진 검증" description="오픈 전 매장 점검" backTo="/tasks/task-101">
+    <AppShell
+      user={user}
+      title="사진 검증"
+      description={`${currentTask.title}의 현장 사진을 촬영하고 검증합니다.`}
+      backTo={`/tasks/${currentTask.id}`}
+      breadcrumbs={[
+        { label: "내 그룹", path: "/groups" },
+        { label: currentGroup.name, path: `/groups/${currentGroup.id}` },
+        { label: currentTask.title, path: `/tasks/${currentTask.id}` },
+        { label: "사진 검증", path: `/tasks/${currentTask.id}/verify/photo`, current: true },
+      ]}
+    >
       <div className={`photo-verification-layout ${verified || verifying ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
           {verified ? (

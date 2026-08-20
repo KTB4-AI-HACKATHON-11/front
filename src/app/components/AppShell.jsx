@@ -69,11 +69,11 @@ function buildBreadcrumbs(pathname, title) {
   return title ? [{ label: title, path: pathname, current: true }] : [];
 }
 
-export default function AppShell({ user, children, title, description, backTo, actions, onBeforeNavigate }) {
+export default function AppShell({ user, children, title, description, backTo, actions, onBeforeNavigate, breadcrumbs }) {
   const navigate = useNavigate();
   const location = useLocation();
   const brandPath = location.pathname.startsWith("/groups") || location.pathname.startsWith("/tasks") ? "/groups" : "/";
-  const breadcrumbs = buildBreadcrumbs(location.pathname, title);
+  const resolvedBreadcrumbs = breadcrumbs?.length ? breadcrumbs : buildBreadcrumbs(location.pathname, title);
   const confirmNavigation = () => (typeof onBeforeNavigate === "function" ? onBeforeNavigate() : true);
   const handleNavigate = (path) => {
     if (!confirmNavigation()) {
@@ -150,9 +150,9 @@ export default function AppShell({ user, children, title, description, backTo, a
               </button>
             )}
             <div className="app-header__title-copy">
-              {breadcrumbs.length > 0 && (
+              {resolvedBreadcrumbs.length > 0 && (
                 <nav className="app-breadcrumb" aria-label="breadcrumb">
-                  {breadcrumbs.map((item, index) => (
+                  {resolvedBreadcrumbs.map((item, index) => (
                     <span className="app-breadcrumb__item" key={`${item.path}-${item.label}`}>
                       {item.current ? (
                         <strong>{item.label}</strong>
@@ -170,7 +170,7 @@ export default function AppShell({ user, children, title, description, backTo, a
                           {item.label}
                         </Link>
                       )}
-                      {index < breadcrumbs.length - 1 ? <span className="app-breadcrumb__separator">/</span> : null}
+                      {index < resolvedBreadcrumbs.length - 1 ? <span className="app-breadcrumb__separator">/</span> : null}
                     </span>
                   ))}
                 </nav>

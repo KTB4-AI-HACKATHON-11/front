@@ -139,9 +139,13 @@ export default function GroupCreatePage({ user }) {
     <AppShell
       user={user}
       title="새 그룹 만들기"
-      description="함께 업무를 관리할 그룹을 생성합니다."
+      description="새로운 업무 공간을 만들고, 다음 단계에서 멤버를 초대할 수 있습니다."
       backTo="/groups"
       onBeforeNavigate={confirmDiscardChanges}
+      breadcrumbs={[
+        { label: "내 그룹", path: "/groups" },
+        { label: "새 그룹 만들기", path: "/groups/new", current: true },
+      ]}
     >
       <div className="group-create-layout">
         <section className="page-card group-create-form-card">

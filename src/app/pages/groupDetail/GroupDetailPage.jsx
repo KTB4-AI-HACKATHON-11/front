@@ -49,8 +49,12 @@ export default function GroupDetailPage({ user }) {
       <AppShell
       user={user}
       title={currentGroup.name}
-      description={currentGroup.description}
+      description={`${currentGroup.memberCount}명의 멤버가 함께 참여 중인 업무 그룹입니다.`}
       backTo="/groups"
+      breadcrumbs={[
+        { label: "내 그룹", path: "/groups" },
+        { label: currentGroup.name, path: `/groups/${groupId}`, current: true },
+      ]}
       actions={
         <div className="group-detail-actions">
           <button className="secondary-button" onClick={() => setIsInviteModalOpen(true)}>

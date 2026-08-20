@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { updateSubTaskStatus } from "../../api/taskApi";
-import { subTasks } from "../../data/mockData";
+import { groups, subTasks, tasks } from "../../data/mockData";
 import SubTaskList from "./components/SubTaskList";
 import VerificationCard from "./components/VerificationCard";
 import "./TaskDetailPage.css";
@@ -12,6 +12,8 @@ import "./TaskDetailPage.css";
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
   const { taskId } = useParams();
+  const currentTask = tasks.find((task) => task.id === taskId) ?? tasks[0];
+  const currentGroup = groups[0];
   const [completedIds, setCompletedIds] = useState(subTasks.filter((item) => item.completed).map((item) => item.id));
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -48,9 +50,14 @@ export default function TaskDetailPage({ user }) {
   return (
     <AppShell
       user={user}
-      title="태스크 상세"
-      description="성수 플래그십 스토어"
-      backTo="/groups/482731"
+      title={currentTask.title}
+      description={`${currentGroup.name}에서 진행 중인 태스크의 수행 현황을 확인합니다.`}
+      backTo={`/groups/${currentGroup.id}`}
+      breadcrumbs={[
+        { label: "내 그룹", path: "/groups" },
+        { label: currentGroup.name, path: `/groups/${currentGroup.id}` },
+        { label: currentTask.title, path: `/tasks/${taskId}`, current: true },
+      ]}
       actions={<button className="icon-button icon-button--bordered" title="태스크 메뉴"><MoreHorizontal size={18} /></button>}
     >
       <section className="task-detail-hero page-card">
@@ -59,11 +66,11 @@ export default function TaskDetailPage({ user }) {
             <span className="status-pill status-pill--active">진행 중</span>
             <span className="task-detail-id"><Copy size={12} /> TASK_ID · {taskId}</span>
           </div>
-          <h2>오픈 전 매장 점검</h2>
-          <p>매장 오픈 전 필수 준비 사항을 순서대로 확인하고 마지막에 현장 사진을 남겨주세요.</p>
+            <h2>{currentTask.title}</h2>
+            <p>담당자가 수행 중인 세부 체크리스트와 검증 상태를 한곳에서 확인할 수 있습니다.</p>
           <div className="task-detail-hero__meta">
-            <span><UserRound size={13} /> 담당자 <b>서연</b></span>
-            <span><Clock3 size={13} /> 마감 <b>오늘 09:30</b></span>
+            <span><UserRound size={13} /> 담당자 <b>{currentTask.assignee}</b></span>
+            <span><Clock3 size={13} /> 마감 <b>{currentTask.dueDate}</b></span>
           </div>
         </div>
         <div className="task-progress-ring" style={{ "--progress": `${progress * 3.6}deg` }}>

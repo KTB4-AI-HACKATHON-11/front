@@ -4,7 +4,9 @@ import { useBeforeUnload, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
+import { groups } from "../../data/mockData";
 import { members } from "../../data/mockData";
+import { mergeGroups } from "../../lib/groupStorage";
 import "./TaskCreatePage.css";
 
 const TASK_TITLE_MAX_LENGTH = 200;
@@ -76,6 +78,7 @@ function validateTaskCreateForm({ title, message, assigneeId }) {
 export default function TaskCreatePage({ user }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
+  const currentGroup = mergeGroups(groups).find((group) => group.id === groupId);
   const workerMembers = members.filter((member) => member.role === "WORKER");
   const defaultAssigneeId = workerMembers[0]?.id ?? "";
   const draft = loadDraft(groupId, workerMembers);
@@ -177,9 +180,14 @@ export default function TaskCreatePage({ user }) {
     <AppShell
       user={user}
       title="새 태스크 만들기"
-      description="성수 플래그십 스토어"
+      description={currentGroup ? `${currentGroup.name}에서 새 업무를 등록합니다.` : "그룹에 연결할 새 업무를 작성합니다."}
       backTo={`/groups/${groupId}`}
       onBeforeNavigate={confirmDiscardChanges}
+      breadcrumbs={[
+        { label: "내 그룹", path: "/groups" },
+        ...(currentGroup ? [{ label: currentGroup.name, path: `/groups/${groupId}` }] : []),
+        { label: "새 태스크 만들기", path: `/groups/${groupId}/tasks/new`, current: true },
+      ]}
     >
       {!hasValidMemberSession ? (
         <section className="page-card task-create-result">
