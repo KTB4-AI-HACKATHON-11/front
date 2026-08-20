@@ -1,5 +1,5 @@
 // 태스크 관련 API
-import { apiRequest } from "./client";
+import { apiRequest, cachedApiRequest, clearApiCache } from "./client";
 import { optimizePhotoUpload } from "../lib/photoOptimization";
 
 /**
@@ -9,7 +9,7 @@ import { optimizePhotoUpload } from "../lib/photoOptimization";
 export function getGroupTasks({ groupId, requesterId, offset = 0, limit = 20, status }) {
   const params = new URLSearchParams({ requesterId: String(requesterId), offset: String(offset), limit: String(limit) });
   if (status) params.set("status", status);
-  return apiRequest(`/groups/${groupId}/tasks?${params.toString()}`);
+  return cachedApiRequest(`/groups/${groupId}/tasks?${params.toString()}`, 10_000);
 }
 
 /**
@@ -17,7 +17,11 @@ export function getGroupTasks({ groupId, requesterId, offset = 0, limit = 20, st
  * GET /api/v1/tasks/{taskId}?requesterId={requesterId}
  */
 export function getTaskDetail({ taskId, requesterId }) {
-  return apiRequest(`/tasks/${taskId}?requesterId=${requesterId}`);
+  return cachedApiRequest(`/tasks/${taskId}?requesterId=${requesterId}`, 30_000);
+}
+
+export function prefetchTaskDetail({ taskId, requesterId }) {
+  return getTaskDetail({ taskId, requesterId }).catch(() => null);
 }
 
 /**
@@ -82,17 +86,21 @@ export async function createTask({ groupId, managerId, title, message, workerId,
     formData.append("referencePhotos", file, file.name);
   });
 
-  return apiRequest(`/groups/${groupId}/tasks`, {
+  const result = await apiRequest(`/groups/${groupId}/tasks`, {
     method: "POST",
     body: formData,
   });
+  clearApiCache();
+  return result;
 }
 
-export function updateTaskCompletionNotification({ taskId, enabled }) {
-  return apiRequest(`/tasks/${taskId}/completion-notification`, {
+export async function updateTaskCompletionNotification({ taskId, enabled }) {
+  const result = await apiRequest(`/tasks/${taskId}/completion-notification`, {
     method: "PATCH",
     body: { enabled },
   });
+  clearApiCache();
+  return result;
 }
 
 /**
@@ -100,11 +108,13 @@ export function updateTaskCompletionNotification({ taskId, enabled }) {
  * PATCH /api/v1/tasks/{taskId}/sub-tasks/{subTaskId}
  * @param {{ taskId: string|number, subTaskId: string|number, workerId: string|number, performed: boolean }} params
  */
-export function updateSubTaskStatus({ taskId, subTaskId, workerId, performed }) {
-  return apiRequest(`/tasks/${taskId}/sub-tasks/${subTaskId}`, {
+export async function updateSubTaskStatus({ taskId, subTaskId, workerId, performed }) {
+  const result = await apiRequest(`/tasks/${taskId}/sub-tasks/${subTaskId}`, {
     method: "PATCH",
     body: { workerId, performed },
   });
+  clearApiCache();
+  return result;
 }
 
 /**
@@ -116,10 +126,12 @@ export async function submitPhotoAttempt({ assignmentId, workerId, photo }) {
   const formData = new FormData();
   formData.append("photo", optimizedPhoto, optimizedPhoto.name);
 
-  return apiRequest(`/assignments/${assignmentId}/photo-attempts?workerId=${encodeURIComponent(workerId)}`, {
+  const result = await apiRequest(`/assignments/${assignmentId}/photo-attempts?workerId=${encodeURIComponent(workerId)}`, {
     method: "POST",
     body: formData,
   });
+  clearApiCache();
+  return result;
 }
 
 /**
@@ -172,8 +184,10 @@ export async function updateVerificationSettings({ taskId, managerId, workerId, 
     formData.append("referencePhotos", file, file.name);
   });
 
-  return apiRequest(`/tasks/${taskId}/verification-settings`, {
+  const result = await apiRequest(`/tasks/${taskId}/verification-settings`, {
     method: "PATCH",
     body: formData,
   });
+  clearApiCache();
+  return result;
 }

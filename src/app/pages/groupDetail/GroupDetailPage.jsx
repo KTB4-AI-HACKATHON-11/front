@@ -6,7 +6,7 @@ import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getGroupDetail } from "../../api/groupApi";
 import { getGroupMembers } from "../../api/memberApi";
-import { getGroupTasks } from "../../api/taskApi";
+import { getGroupTasks, prefetchTaskDetail } from "../../api/taskApi";
 import { toDisplayMembers } from "../../lib/memberDisplay";
 import { toTaskCard } from "../../lib/taskDisplay";
 import GroupInviteModal from "./components/GroupInviteModal";
@@ -25,6 +25,8 @@ export default function GroupDetailPage({ user }) {
   const [membersErrorMessage, setMembersErrorMessage] = useState("");
   const [tasksErrorMessage, setTasksErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isMembersLoading, setIsMembersLoading] = useState(true);
+  const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorType, setErrorType] = useState("group");
 
@@ -33,16 +35,20 @@ export default function GroupDetailPage({ user }) {
 
     async function loadGroupDetailAndMembers() {
       setIsLoading(true);
+      setIsMembersLoading(true);
+      setIsTasksLoading(true);
       setErrorMessage("");
       setMembersErrorMessage("");
       setTasksErrorMessage("");
-      // 그룹 상세와 멤버 목록은 서로 다른 API라 하나가 실패해도 나머지는 반영되도록
-      // allSettled로 독립적으로 처리합니다.
-      const [groupResult, membersResult, taskResult] = await Promise.allSettled([
-        getGroupDetail({ groupId, memberId: user.memberId }),
-        getGroupMembers({ groupId, requesterId: user.memberId }),
-        getGroupTasks({ groupId, requesterId: user.memberId }),
-      ]);
+      const settle = (promise) => promise.then(
+        (value) => ({ status: "fulfilled", value }),
+        (reason) => ({ status: "rejected", reason })
+      );
+      // 세 요청을 동시에 시작하되, 화면의 뼈대가 되는 그룹 상세만 도착하면 먼저 렌더링합니다.
+      const groupPromise = settle(getGroupDetail({ groupId, memberId: user.memberId }));
+      const membersPromise = settle(getGroupMembers({ groupId, requesterId: user.memberId }));
+      const taskPromise = settle(getGroupTasks({ groupId, requesterId: user.memberId }));
+      const groupResult = await groupPromise;
 
       if (cancelled) return;
 
@@ -61,6 +67,10 @@ export default function GroupDetailPage({ user }) {
           setErrorType("group");
         }
       }
+      setIsLoading(false);
+
+      const [membersResult, taskResult] = await Promise.all([membersPromise, taskPromise]);
+      if (cancelled) return;
 
       if (membersResult.status === "fulfilled") {
         setGroupMembers(toDisplayMembers(membersResult.value));
@@ -72,6 +82,7 @@ export default function GroupDetailPage({ user }) {
             : "멤버 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
         );
       }
+      setIsMembersLoading(false);
 
       if (taskResult.status === "fulfilled") {
         setGroupTasks((taskResult.value?.items ?? []).map(toTaskCard));
@@ -83,7 +94,7 @@ export default function GroupDetailPage({ user }) {
             : "태스크 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
         );
       }
-      setIsLoading(false);
+      setIsTasksLoading(false);
     }
 
     loadGroupDetailAndMembers();
@@ -186,7 +197,9 @@ export default function GroupDetailPage({ user }) {
             <div><h2>태스크 목록</h2><span>총 {groupTasks.length}개</span></div>
           </div>
           <div className="task-list">
-            {tasksErrorMessage ? (
+            {isTasksLoading ? (
+              <p className="group-grid__empty">태스크 목록을 불러오는 중이에요...</p>
+            ) : tasksErrorMessage ? (
               <p className="group-grid__empty" role="alert">{tasksErrorMessage}</p>
             ) : groupTasks.length === 0 ? (
               <p className="group-grid__empty">아직 이 그룹에 연결된 태스크가 없습니다.</p>
@@ -195,6 +208,7 @@ export default function GroupDetailPage({ user }) {
                 <TaskCard
                   key={task.id}
                   task={task}
+                  onPrefetch={() => prefetchTaskDetail({ taskId: task.id, requesterId: user.memberId })}
                   onOpen={() => navigate(`/tasks/${task.id}`, { state: { groupId } })}
                 />
               ))
@@ -203,6 +217,7 @@ export default function GroupDetailPage({ user }) {
         </section>
         <MemberList
           members={groupMembers}
+          isLoading={isMembersLoading}
           errorMessage={membersErrorMessage}
           onInvite={() => setIsInviteModalOpen(true)}
         />

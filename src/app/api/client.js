@@ -5,6 +5,9 @@
 
 // export const API_BASE_URL = "http://localhost:8080/api/v1";
 const API_BASE_URL = "https://api.checkon.cloud/api/v1";
+const responseCache = new Map();
+const inFlightRequests = new Map();
+let cacheVersion = 0;
 
 export class ApiError extends Error {
   constructor(code, message, status) {
@@ -66,4 +69,35 @@ export async function apiRequest(path, options = {}) {
   }
 
   return payload?.data ?? null;
+}
+
+export function cachedApiRequest(path, ttlMs = 20_000) {
+  const now = Date.now();
+  const cached = responseCache.get(path);
+  if (cached && cached.expiresAt > now) {
+    return Promise.resolve(cached.data);
+  }
+
+  const inFlight = inFlightRequests.get(path);
+  if (inFlight) return inFlight;
+
+  const requestCacheVersion = cacheVersion;
+  const request = apiRequest(path)
+    .then((data) => {
+      if (requestCacheVersion === cacheVersion) {
+        responseCache.set(path, { data, expiresAt: Date.now() + ttlMs });
+      }
+      return data;
+    })
+    .finally(() => {
+      inFlightRequests.delete(path);
+    });
+  inFlightRequests.set(path, request);
+  return request;
+}
+
+export function clearApiCache() {
+  cacheVersion += 1;
+  responseCache.clear();
+  inFlightRequests.clear();
 }

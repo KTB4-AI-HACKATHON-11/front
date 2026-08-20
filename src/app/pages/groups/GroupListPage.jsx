@@ -25,12 +25,24 @@ export default function GroupListPage({ user }) {
     async function loadGroups() {
       setIsLoading(true);
       setErrorMessage("");
+      setTaskStats(null);
       try {
         const data = await getMyGroups({ memberId: user.memberId });
         const nextGroups = data ?? [];
-        const detailResults = await Promise.allSettled(
+        const detailResultsPromise = Promise.allSettled(
           nextGroups.map((group) => getGroupDetail({ groupId: group.groupId, memberId: user.memberId }))
         );
+        const taskResultsPromise = Promise.allSettled(
+          nextGroups.map((group) => getGroupTasks({ groupId: group.groupId, requesterId: user.memberId }))
+        );
+
+        if (!cancelled) {
+          // 목록 API에 이미 이름과 설명이 있으므로 먼저 표시하고, 통계는 백그라운드에서 보강합니다.
+          setGroups(nextGroups);
+          setIsLoading(false);
+        }
+
+        const [detailResults, taskResults] = await Promise.all([detailResultsPromise, taskResultsPromise]);
         const enrichedGroups = nextGroups.map((group, index) => (
           detailResults[index].status === "fulfilled"
             ? { ...group, ...detailResults[index].value }
@@ -38,9 +50,6 @@ export default function GroupListPage({ user }) {
         ));
         if (!cancelled) setGroups(enrichedGroups);
 
-        const taskResults = await Promise.allSettled(
-          nextGroups.map((group) => getGroupTasks({ groupId: group.groupId, requesterId: user.memberId }))
-        );
         if (!cancelled && taskResults.every((result) => result.status === "fulfilled")) {
           const allTasks = taskResults.flatMap((result) => result.value?.items ?? []);
 
@@ -56,9 +65,8 @@ export default function GroupListPage({ user }) {
               ? error.message
               : "그룹 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
           );
+          setIsLoading(false);
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
     }
 

@@ -1,4 +1,5 @@
 import { Camera, CheckCircle2, ShieldCheck } from "lucide-react";
+import ProgressiveImage from "../../../components/ProgressiveImage";
 
 export default function VerificationCard({ subTask, onPhotoOpen }) {
   return (
@@ -20,7 +21,7 @@ export default function VerificationCard({ subTask, onPhotoOpen }) {
           {subTask.photo && subTask.referencePhotoUrl && (
             <div className="task-verification__reference">
               <span>예시 사진</span>
-              <img src={subTask.referencePhotoUrl} alt="검증 예시 사진" />
+              <ProgressiveImage src={subTask.referencePhotoUrl} alt="검증 예시 사진" />
             </div>
           )}
           <div className="task-verification__checklist">

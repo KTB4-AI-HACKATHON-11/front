@@ -56,7 +56,7 @@
 .photo-criteria__heading h2 { margin: 1px 0 0; font-family: "Onest", sans-serif; font-size: 13px; font-weight: 700; }
 .photo-criteria__description { margin: 16px 0; color: #858590; font-size: 9px; line-height: 1.55; }
 .photo-criteria__reference { margin-bottom: 20px; overflow: hidden; border: 1px solid #e8e8ee; border-radius: 8px; }
-.photo-criteria__reference img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.photo-criteria__reference .progressive-image { width: 100%; }
 .photo-criteria .primary-button, .photo-criteria .ghost-button { width: 100%; }
 .photo-criteria .primary-button:disabled { border-color: #c8c8d0; background: #c8c8d0; cursor: not-allowed; transform: none; }
 .photo-criteria .ghost-button { min-height: 34px; margin-top: 4px; font-size: 9px; }
@@ -104,7 +104,7 @@
 @media (max-width: 850px) {
   .photo-verification-layout { grid-template-columns: 1fr; }
   .photo-criteria__reference { background: #f5f5f8; }
-  .photo-criteria__reference img { height: auto; aspect-ratio: auto; object-fit: contain; }
+  .photo-criteria__reference .progressive-image { width: 100%; }
 }
 
 @media (max-width: 520px) {

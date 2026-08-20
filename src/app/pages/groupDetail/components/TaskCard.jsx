@@ -5,12 +5,18 @@ const verificationMap = {
   none: { label: "검증 없음", icon: ShieldOff, className: "task-card__verify--none" },
 };
 
-export default function TaskCard({ task, onOpen }) {
+export default function TaskCard({ task, onOpen, onPrefetch }) {
   const verification = verificationMap[task.verification];
   const VerificationIcon = verification.icon;
 
   return (
-    <button className="task-card" onClick={onOpen}>
+    <button
+      className="task-card"
+      onClick={onOpen}
+      onFocus={onPrefetch}
+      onPointerDown={onPrefetch}
+      onPointerEnter={onPrefetch}
+    >
       <div className="task-card__status-icon">
         <CircleCheck size={19} className={task.status === "completed" ? "is-complete" : ""} />
       </div>

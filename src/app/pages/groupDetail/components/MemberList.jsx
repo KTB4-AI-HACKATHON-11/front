@@ -1,6 +1,6 @@
 import { UserPlus } from "lucide-react";
 
-export default function MemberList({ members, errorMessage, onInvite }) {
+export default function MemberList({ members, isLoading, errorMessage, onInvite }) {
   return (
     <aside className="member-panel page-card">
       <div className="member-panel__heading">
@@ -8,7 +8,9 @@ export default function MemberList({ members, errorMessage, onInvite }) {
         <button className="icon-button icon-button--bordered" type="button" title="멤버 초대" onClick={onInvite}><UserPlus size={15} /></button>
       </div>
       <div className="member-list">
-        {errorMessage ? (
+        {isLoading ? (
+          <p className="group-grid__empty">멤버 목록을 불러오는 중이에요...</p>
+        ) : errorMessage ? (
           <p className="group-grid__empty" role="alert">{errorMessage}</p>
         ) : members.length === 0 ? (
           <p className="group-grid__empty">표시할 멤버가 없습니다.</p>

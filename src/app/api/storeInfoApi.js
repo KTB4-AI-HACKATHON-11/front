@@ -1,5 +1,5 @@
 // 매장 정보(Store Info) 관련 API
-import { apiRequest } from "./client";
+import { apiRequest, cachedApiRequest, clearApiCache } from "./client";
 
 /**
  * 매장 정보 목록 조회
@@ -9,7 +9,7 @@ import { apiRequest } from "./client";
  * @returns {Promise<Array<{ storeInfoId: number, category: string, title: string, content: string, updatedAt: string }>>}
  */
 export function getStoreInfoList({ groupId, requesterId }) {
-  return apiRequest(`/groups/${groupId}/store-info?requesterId=${requesterId}`);
+  return cachedApiRequest(`/groups/${groupId}/store-info?requesterId=${requesterId}`, 30_000);
 }
 
 /**
@@ -19,11 +19,13 @@ export function getStoreInfoList({ groupId, requesterId }) {
  * @param {{ groupId: string|number, managerId: number, category: string, title: string, content: string }} params
  * @returns {Promise<{ storeInfoId: number, category: string, title: string, content: string, updatedAt: string }>}
  */
-export function createStoreInfo({ groupId, managerId, category, title, content }) {
-  return apiRequest(`/groups/${groupId}/store-info`, {
+export async function createStoreInfo({ groupId, managerId, category, title, content }) {
+  const result = await apiRequest(`/groups/${groupId}/store-info`, {
     method: "POST",
     body: { managerId, category, title, content },
   });
+  clearApiCache();
+  return result;
 }
 
 /**
@@ -32,11 +34,13 @@ export function createStoreInfo({ groupId, managerId, category, title, content }
  * @param {{ groupId: string|number, storeInfoId: string|number, managerId: number, category: string, title: string, content: string }} params
  * @returns {Promise<{ storeInfoId: number, category: string, title: string, content: string, updatedAt: string }>}
  */
-export function updateStoreInfo({ groupId, storeInfoId, managerId, category, title, content }) {
-  return apiRequest(`/groups/${groupId}/store-info/${storeInfoId}`, {
+export async function updateStoreInfo({ groupId, storeInfoId, managerId, category, title, content }) {
+  const result = await apiRequest(`/groups/${groupId}/store-info/${storeInfoId}`, {
     method: "PATCH",
     body: { managerId, category, title, content },
   });
+  clearApiCache();
+  return result;
 }
 
 /**
@@ -44,8 +48,10 @@ export function updateStoreInfo({ groupId, storeInfoId, managerId, category, tit
  * DELETE /api/v1/groups/{groupId}/store-info/{storeInfoId}?managerId={managerId}
  * @param {{ groupId: string|number, storeInfoId: string|number, managerId: number }} params
  */
-export function deleteStoreInfo({ groupId, storeInfoId, managerId }) {
-  return apiRequest(`/groups/${groupId}/store-info/${storeInfoId}?managerId=${managerId}`, {
+export async function deleteStoreInfo({ groupId, storeInfoId, managerId }) {
+  const result = await apiRequest(`/groups/${groupId}/store-info/${storeInfoId}?managerId=${managerId}`, {
     method: "DELETE",
   });
+  clearApiCache();
+  return result;
 }

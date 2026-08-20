@@ -2,6 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
+import ProgressiveImage from "../../components/ProgressiveImage";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getTaskDetail, submitPhotoAttempt } from "../../api/taskApi";
@@ -306,7 +307,7 @@ export default function PhotoVerificationPage({ user }) {
             <p className="photo-criteria__description">{subTask.rule || "아래 기준에 맞게 사진을 촬영해주세요."}</p>
             {subTask.referencePhotoUrl && (
               <div className="photo-criteria__reference">
-                <img src={subTask.referencePhotoUrl} alt="기준 사진" />
+                <ProgressiveImage src={subTask.referencePhotoUrl} alt="기준 사진" />
               </div>
             )}
             <button className="primary-button" disabled={!captured} onClick={() => handleVerify(subTask)}>
