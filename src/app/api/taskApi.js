@@ -97,3 +97,58 @@ export function updateSubTaskStatus({ taskId, subTaskId, workerId, performed }) 
     body: { workerId, performed },
   });
 }
+
+/**
+ * 검증 기준 저장 (담당자, 마감 일시, 체크리스트 완료 방식과 기준 사진을 한 번에 수정)
+ * PATCH /api/v1/tasks/{taskId}/verification-settings (multipart/form-data)
+ * "request" 파트에 JSON 본문을, "referencePhotos" 파트에 기준 사진 파일들을 담아 함께 전송합니다.
+ * 이미 시작된 태스크는 수정할 수 없습니다(409 TASK_ALREADY_STARTED).
+ *
+ * items 규칙(백엔드 검증):
+ *   - 이 태스크의 체크리스트 전체 개수만큼 빠짐없이 보내야 함
+ *     (checklistId는 GET /tasks/{taskId} 응답의 checklists[].checklistId를 그대로 사용)
+ *   - completionType은 PHOTO | CHECK
+ *   - completionType이 PHOTO면 rule 필수, referencePhotoIndex는 선택(기존 기준 사진을 유지하려면 생략)
+ *   - completionType이 CHECK면 rule과 referencePhotoIndex는 반드시 null
+ *   - referencePhotoIndex는 referencePhotos 배열의 0-based 인덱스이며, 항목끼리 같은 인덱스를 공유할 수 없음
+ *     (인덱스만 있고 해당 파일이 없으면 에러)
+ *   - dueAt은 현재 시각 이후여야 함
+ *
+ * @param {{
+ *   taskId: string|number,
+ *   managerId: number,
+ *   workerId: number,
+ *   dueAt: string,
+ *   items: Array<{
+ *     checklistId: number, enabled: boolean, completionType: "PHOTO"|"CHECK",
+ *     rule: string|null, referencePhotoIndex: number|null
+ *   }>,
+ *   referencePhotos?: File[]
+ * }} params
+ * @returns {Promise<{
+ *   taskId: number, workerId: number, dueAt: string,
+ *   items: Array<{ checklistId: number, enabled: boolean, completionType: "PHOTO"|"CHECK", rule: string|null, referencePhotoUrl: string|null }>
+ * }>}
+ * 실패 응답:
+ *   400 INVALID_INPUT_VALUE | INVALID_COMPLETION_TYPE | INVALID_DUE_AT | VERIFICATION_RULE_REQUIRED | INVALID_REFERENCE_PHOTO_INDEX
+ *   403 VERIFICATION_SETTINGS_UPDATE_FORBIDDEN
+ *   404 TASK_NOT_FOUND | CHECKLIST_NOT_FOUND
+ *   409 WORKER_NOT_IN_GROUP | TASK_ALREADY_STARTED
+ *   업로드 실패 시 PHOTO_TOO_LARGE(파일 크기 초과) | INVALID_PHOTO(형식/검증 실패) — 정확한 HTTP 상태 코드는
+ *   명세에 명시되어 있지 않아 호출부에서 status 값을 단정하지 말고 ApiError.message로 방어적으로 처리하세요.
+ */
+export function updateVerificationSettings({ taskId, managerId, workerId, dueAt, items, referencePhotos = [] }) {
+  const formData = new FormData();
+  formData.append(
+    "request",
+    new Blob([JSON.stringify({ managerId, workerId, dueAt, items })], { type: "application/json" })
+  );
+  referencePhotos.forEach((file) => {
+    formData.append("referencePhotos", file, file.name);
+  });
+
+  return apiRequest(`/tasks/${taskId}/verification-settings`, {
+    method: "PATCH",
+    body: formData,
+  });
+}
