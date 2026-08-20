@@ -196,17 +196,14 @@ export default function TaskCreatePage({ user }) {
               <p className="task-create-form__error" role="alert">{errorMessage}</p>
             )}
 
-            <div className="task-create-submit page-card">
+            <div className="task-create-submit">
               {isGenerating ? (
                 <div className="task-create-loading" aria-live="polite">
                   <span className="task-create-loading__spinner" />
                   <div><strong>AI가 태스크를 정리하고 있어요</strong><small>잠시만 기다려주세요.</small></div>
                 </div>
               ) : (
-                <>
-                  <div><span>생성 후 다음 단계</span><strong>체크리스트 검토</strong></div>
-                  <button className="primary-button" type="submit"><Sparkles size={15} /> AI로 태스크 생성 <ArrowRight size={15} /></button>
-                </>
+                <button className="primary-button" type="submit"><Sparkles size={15} /> AI로 태스크 생성 <ArrowRight size={15} /></button>
               )}
             </div>
           </div>
