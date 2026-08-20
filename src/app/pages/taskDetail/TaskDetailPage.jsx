@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock3, Copy, MoreHorizontal, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
@@ -13,6 +13,7 @@ import "./TaskDetailPage.css";
 
 export default function TaskDetailPage({ user }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { taskId } = useParams();
   const [taskDetail, setTaskDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,8 +30,14 @@ export default function TaskDetailPage({ user }) {
       try {
         const data = await getTaskDetail({ taskId, requesterId: user?.memberId });
         if (!cancelled) {
-          setTaskDetail(data);
-          setCompletedIds((data?.checklists ?? []).filter((item) => item.performed).map((item) => String(item.checklistId)));
+          const verifiedChecklistId = location.state?.verifiedChecklistId;
+          const nextChecklists = (data?.checklists ?? []).map((item) =>
+            String(item.checklistId) === String(verifiedChecklistId)
+              ? { ...item, performed: true }
+              : item
+          );
+          setTaskDetail({ ...data, checklists: nextChecklists });
+          setCompletedIds(nextChecklists.filter((item) => item.performed).map((item) => String(item.checklistId)));
         }
       } catch (error) {
         if (!cancelled) {
@@ -51,7 +58,7 @@ export default function TaskDetailPage({ user }) {
     return () => {
       cancelled = true;
     };
-  }, [taskId, user?.memberId]);
+  }, [location.state?.verifiedChecklistId, taskId, user?.memberId]);
 
   const currentGroup = groups.find((group) => String(group.id) === String(taskDetail?.groupId)) ?? groups[0];
   const subTasks = (taskDetail?.checklists ?? []).map(toSubTask);
@@ -69,7 +76,34 @@ export default function TaskDetailPage({ user }) {
       willComplete ? [...current, subTaskId] : current.filter((id) => id !== subTaskId)
     );
     try {
-      await updateSubTaskStatus({ taskId, subTaskId, completed: willComplete });
+      const result = await updateSubTaskStatus({
+        taskId,
+        subTaskId,
+        workerId: user.memberId,
+        performed: willComplete,
+      });
+      setCompletedIds((current) =>
+        result?.performed === willComplete
+          ? (willComplete ? [...new Set([...current, subTaskId])] : current.filter((id) => id !== subTaskId))
+          : current
+      );
+      setTaskDetail((current) => {
+        if (!current) return current;
+
+        const nextChecklists = current.checklists.map((item) =>
+          String(item.checklistId) === String(subTaskId)
+            ? { ...item, performed: result?.performed ?? willComplete, performedAt: result?.performedAt ?? null }
+            : item
+        );
+        const completedItemCount = nextChecklists.filter((item) => item.performed).length;
+
+        return {
+          ...current,
+          progress: nextChecklists.length ? Math.round((completedItemCount / nextChecklists.length) * 100) : 0,
+          status: result?.status ?? current.status,
+          checklists: nextChecklists,
+        };
+      });
     } catch (error) {
       setCompletedIds((current) =>
         willComplete ? current.filter((id) => id !== subTaskId) : [...current, subTaskId]

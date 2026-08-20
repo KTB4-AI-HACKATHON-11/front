@@ -96,7 +96,7 @@ export default function PhotoVerificationPage({ user }) {
 
   const handleVerify = () => {
     // TODO: 촬영 이미지(capturedImage)와 검증 기준을 사진 검증 API로 전송하고 성공 여부를 받아야 합니다.
-    // TODO: 성공 시 해당 체크리스트 항목(subTaskId)의 performed boolean을 true로 갱신해야 합니다.
+    // TODO: 사진 인증 API가 연결되면 성공 응답에서 performed 상태를 받아 서버에 저장해야 합니다.
     // API 미구현으로 임시 목업 응답 값을 성공 화면에 보여줄 값으로 미리 설정해두고,
     // 실제 API 응답을 기다리는 흐름처럼 보이도록 짧은 지연 동안 진행률을 0 → 100%로 채웁니다.
     setVerifying(true);
@@ -173,7 +173,10 @@ export default function PhotoVerificationPage({ user }) {
       <div className={`photo-verification-layout ${verified || verifying ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
           {verified ? (
-            <SuccessResult matchScore={verificationResult?.matchScore} onConfirm={() => navigate(`/tasks/${taskId}`)} />
+            <SuccessResult
+              matchScore={verificationResult?.matchScore}
+              onConfirm={() => navigate(`/tasks/${taskId}`, { state: { verifiedChecklistId: subTaskId } })}
+            />
           ) : verifying ? (
             <VerifyingState progress={verifyProgress} />
           ) : (
