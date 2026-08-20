@@ -4,15 +4,32 @@ import { ApiError } from "../../../api/client";
 import { getGroupAgentHistory, getGroupAgentTurn, sendGroupAgentMessage } from "../../../api/agentApi";
 
 const QUICK_REQUESTS = [
-  "지금 진행 중인 태스크 알려줘",
-  "새 태스크를 만들어줘",
-  "매장 정보에 오늘 행사를 추가해줘",
-  "태스크 담당자에게 알림 보내줘",
+  {
+    label: "진행 현황 요약",
+    prompt:
+      "현재 이 그룹에서 진행 중인 태스크를 담당자, 마감 시간, 완료한 체크리스트 수/전체 수, 완료율과 함께 정리해줘. 마감이 가까운 순서로 보여주고, 진행 중인 태스크가 없으면 없다고 알려줘.",
+  },
+  {
+    label: "점검 태스크 생성",
+    prompt:
+      "‘오늘 매장 운영 점검’ 태스크를 지금부터 2시간 뒤 마감으로 만들어줘. 그룹의 WORKER를 이름 가나다순으로 정렬해 첫 번째 사람에게 배정하고 완료 알림은 켜줘. 체크리스트는 ① 입구와 계산대 주변 정리 상태 확인(CHECK), ② POS 전원이 켜진 화면 촬영(PHOTO, 화면이 켜져 정상 동작하는 모습이 보여야 함), ③ 매장 전체 조명이 켜진 전경 촬영(PHOTO, 매장 내부 조명이 모두 켜진 모습이 보여야 함)으로 구성해줘. WORKER가 없으면 생성하지 말고 알려줘.",
+  },
+  {
+    label: "오늘 행사 추가",
+    prompt:
+      "기존 매장 정보는 하나도 삭제하거나 수정하지 말고, 같은 내용이 없을 때만 행사 정보를 새로 추가해줘. 카테고리는 PROMOTION, 제목은 ‘오늘 아메리카노 할인’, 내용은 ‘오늘 영업시간 동안 아메리카노를 500원 할인한다. 다른 쿠폰과 중복 적용할 수 없으며 재고 소진 시 종료한다.’로 저장해줘. 이미 같은 행사가 있으면 중복 추가하지 말고 현재 내용을 알려줘.",
+  },
+  {
+    label: "전체 알바생 알림",
+    prompt:
+      "현재 이 그룹의 모든 WORKER에게 ‘오늘 할당된 태스크와 마감 시간을 확인해 주세요. 완료한 항목은 바로 체크하고, 사진이 필요한 항목은 완료 상태가 잘 보이게 촬영해 주세요.’라는 알림을 보내줘. WORKER가 한 명도 없거나 전체 수신자를 확인할 수 없으면 임의로 보내지 말고 이유를 알려줘.",
+  },
 ];
 const RECOVERY_POLL_INTERVAL_MS = 1_500;
 const RECOVERY_POLL_LIMIT = 80;
 const LIVE_POLL_INTERVAL_MS = 650;
 const LIVE_POLL_LIMIT = 200;
+const INTERNAL_CONTEXT_PREFIX = "AI가 참고한 정보:";
 
 function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -54,6 +71,15 @@ function formatTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function userFacingAssistantMessage(value = "") {
+  return value
+    .split(/\r?\n/)
+    .filter((line) => !line.trimStart().startsWith(INTERNAL_CONTEXT_PREFIX))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function createRequestId() {
@@ -116,6 +142,7 @@ function AgentTurn({ turn }) {
   const activities = rawActivities.filter(
     (activity) => activity.tool?.toUpperCase() !== "SEND_NOTIFICATION"
   );
+  const assistantMessage = userFacingAssistantMessage(turn.assistantMessage);
   return (
     <div className="group-agent-turn">
       <div className="group-agent-message group-agent-message--manager">
@@ -130,9 +157,7 @@ function AgentTurn({ turn }) {
             <p className="group-agent-message__thinking"><LoaderCircle size={14} /> 그룹 정보를 확인하고 있어요.</p>
           ) : null}
           <ToolActivityTrail activities={activities} />
-          {!isProcessing && (
-            <p>{turn.assistantMessage}</p>
-          )}
+          {!isProcessing && assistantMessage && <p>{assistantMessage}</p>}
           {(turn.notificationCards ?? []).map((card) => <NotificationReceipt key={card.callId} card={card} />)}
         </div>
       </div>
@@ -335,7 +360,11 @@ export default function GroupAgentPanel({ groupId, groupName, managerId, onMutat
 
       {!turns.length && !isLoading && (
         <div className="group-agent-panel__quick-requests">
-          {QUICK_REQUESTS.map((request) => <button type="button" key={request} onClick={() => setDraft(request)}>{request}</button>)}
+          {QUICK_REQUESTS.map(({ label, prompt }) => (
+            <button type="button" key={label} title={prompt} onClick={() => setDraft(prompt)}>
+              {label}
+            </button>
+          ))}
         </div>
       )}
 
