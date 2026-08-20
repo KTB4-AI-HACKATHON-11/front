@@ -1,4 +1,4 @@
-import { CalendarDays, Check, Copy, Plus, UserPlus, Users } from "lucide-react";
+import { BookOpen, CalendarDays, Check, Copy, Plus, Sparkles, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -115,9 +115,17 @@ export default function GroupDetailPage({ user }) {
       ]}
       actions={
         <div className="group-detail-actions">
-          <button className="secondary-button" onClick={() => setIsInviteModalOpen(true)}>
+          <button className="secondary-button" type="button" onClick={() => setIsInviteModalOpen(true)}>
             <UserPlus size={16} /><span>그룹 초대</span>
           </button>
+          <button className="secondary-button" onClick={() => navigate(`/groups/${groupId}/ask`)}>
+            <Sparkles size={16} /><span>AI에게 물어보기</span>
+          </button>
+          {canManage && (
+            <button className="secondary-button" onClick={() => navigate(`/groups/${groupId}/store-info`)}>
+              <BookOpen size={16} /><span>매장 정보 관리</span>
+            </button>
+          )}
           {canManage && (
             <button className="primary-button" onClick={() => navigate(`/groups/${groupId}/tasks/new`)}>
               <Plus size={16} /><span>새 태스크</span>
@@ -165,11 +173,17 @@ export default function GroupDetailPage({ user }) {
             {groupTasks.length === 0 ? (
               <p className="group-grid__empty">아직 이 그룹에 연결된 태스크가 없습니다.</p>
             ) : (
-              groupTasks.map((task) => <TaskCard key={task.id} task={task} onOpen={() => navigate(`/tasks/${task.id}`)} />)
+              groupTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onOpen={() => navigate(`/tasks/${task.id}`, { state: { groupId } })}
+                />
+              ))
             )}
           </div>
         </section>
-        <MemberList members={groupMembers} />
+        <MemberList members={groupMembers} onInvite={() => setIsInviteModalOpen(true)} />
       </div>
       {isInviteModalOpen && (
         <GroupInviteModal groupId={groupId} onClose={() => setIsInviteModalOpen(false)} />

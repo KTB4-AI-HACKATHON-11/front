@@ -62,7 +62,8 @@ export default function TaskDetailPage({ user }) {
     };
   }, [location.state?.verifiedChecklistId, taskId, user?.memberId]);
 
-  const currentGroup = groups.find((group) => String(group.id) === String(taskDetail?.groupId)) ?? groups[0];
+  const currentGroupId = location.state?.groupId ?? taskDetail?.groupId;
+  const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
   const subTasks = (taskDetail?.checklists ?? []).map(toSubTask);
   const currentTask = taskDetail && {
     title: taskDetail.title,
@@ -124,7 +125,7 @@ export default function TaskDetailPage({ user }) {
   const openPhotoVerification = (subTaskId) => {
     const targetSubTaskId = subTaskId ?? selectedSubTask?.id;
     if (!targetSubTaskId) return;
-    navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`);
+    navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`, { state: { groupId: currentGroupId } });
   };
 
   const progress = taskDetail?.progress ?? (subTasks.length ? Math.round((completedIds.length / subTasks.length) * 100) : 0);
@@ -141,15 +142,17 @@ export default function TaskDetailPage({ user }) {
     return <StatusState user={user} type={loadError?.status === 403 ? "access" : "task"} description={loadError instanceof ApiError ? loadError.message : `요청하신 태스크(${taskId})를 찾을 수 없습니다.`} />;
   }
 
+  const groupPath = currentGroupId ?? currentGroup.id;
+
   return (
     <AppShell
       user={user}
       title={currentTask.title}
       description={`${currentGroup.name}에서 진행 중인 태스크의 수행 현황을 확인합니다.`}
-      backTo={`/groups/${currentGroup.id}`}
+      backTo={`/groups/${groupPath}`}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
-        { label: currentGroup.name, path: `/groups/${currentGroup.id}` },
+        { label: currentGroup.name, path: `/groups/${groupPath}` },
         { label: currentTask.title, path: `/tasks/${taskId}`, current: true },
       ]}
       actions={<button className="icon-button icon-button--bordered" title="태스크 메뉴"><MoreHorizontal size={18} /></button>}

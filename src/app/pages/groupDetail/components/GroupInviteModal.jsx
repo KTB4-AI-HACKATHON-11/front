@@ -1,5 +1,6 @@
 import { Check, Copy, Link2, X } from "lucide-react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 
 export default function GroupInviteModal({ groupId, onClose }) {
   const [copiedTarget, setCopiedTarget] = useState(null);
@@ -15,7 +16,8 @@ export default function GroupInviteModal({ groupId, onClose }) {
     }
   };
 
-  return (
+  return createPortal(
+    (
     <div className="group-invite-modal__backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="group-invite-modal"
@@ -52,5 +54,7 @@ export default function GroupInviteModal({ groupId, onClose }) {
         </div>
       </section>
     </div>
+    ),
+    document.body
   );
 }

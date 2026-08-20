@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
@@ -53,6 +53,7 @@ function verifyPhotoMock({ failCount, rule }) {
 
 export default function PhotoVerificationPage({ user }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { taskId, subTaskId } = useParams();
   const [taskDetail, setTaskDetail] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -267,7 +268,8 @@ export default function PhotoVerificationPage({ user }) {
   }
 
   // 그룹 정보를 조회하는 API가 아직 없어, 태스크 상세 응답의 groupId로 mock 그룹 목록에서 이름만 보조적으로 찾습니다.
-  const currentGroup = groups.find((group) => String(group.id) === String(taskDetail.groupId)) ?? groups[0];
+  const currentGroupId = location.state?.groupId ?? taskDetail.groupId;
+  const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
   const isResultView = Boolean(verificationResult) || verifying || reviewRequested;
   const canRequestReview = failCount >= MANAGER_REVIEW_FAIL_THRESHOLD;
 
@@ -279,7 +281,7 @@ export default function PhotoVerificationPage({ user }) {
       backTo={`/tasks/${taskId}`}
       breadcrumbs={[
         { label: "내 그룹", path: "/groups" },
-        { label: currentGroup.name, path: `/groups/${currentGroup.id}` },
+        { label: currentGroup.name, path: `/groups/${currentGroupId}` },
         { label: taskDetail.title, path: `/tasks/${taskId}` },
         { label: "사진 검증", path: `/tasks/${taskId}/verify/photo/${subTaskId}`, current: true },
       ]}
@@ -287,12 +289,12 @@ export default function PhotoVerificationPage({ user }) {
       <div className={`photo-verification-layout ${isResultView ? "photo-verification-layout--result" : ""}`}>
         <section className="photo-camera-card page-card">
           {reviewRequested ? (
-            <ReviewRequested onConfirm={() => navigate(`/tasks/${taskId}`)} />
+            <ReviewRequested onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })} />
           ) : verificationResult?.success ? (
             <SuccessResult
               matchScore={verificationResult.matchScore}
               description={subTask.instruction ? `${subTask.instruction} 기준으로 확인되었습니다.` : undefined}
-              onConfirm={() => navigate(`/tasks/${taskId}`, { state: { verifiedChecklistId: subTaskId } })}
+              onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId, verifiedChecklistId: subTaskId } })}
             />
           ) : verificationResult && !verificationResult.success ? (
             <FailureResult
@@ -347,7 +349,7 @@ export default function PhotoVerificationPage({ user }) {
             <button className="primary-button" disabled={!captured || isCheckingUpload} onClick={() => handleVerify(subTask)}>
               <ShieldCheck size={15} /> 사진으로 검증하기
             </button>
-            <button className="ghost-button" onClick={() => navigate(`/tasks/${taskId}`)}>나중에 검증하기</button>
+            <button className="ghost-button" onClick={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}>나중에 검증하기</button>
           </aside>
         )}
       </div>

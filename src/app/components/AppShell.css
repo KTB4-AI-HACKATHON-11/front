@@ -287,6 +287,13 @@
   background: #f8f8fb;
 }
 
+.secondary-button:disabled,
+.primary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .ghost-button {
   border: 1px solid transparent;
   background: transparent;
@@ -444,7 +451,8 @@
 }
 
 @media (max-width: 560px) {
-  .app-header__actions .primary-button span {
+  .app-header__actions .primary-button span,
+  .app-header__actions .secondary-button span {
     display: none;
   }
 

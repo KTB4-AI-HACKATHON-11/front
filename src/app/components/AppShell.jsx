@@ -30,6 +30,26 @@ function buildBreadcrumbs(pathname, title) {
     ];
   }
 
+  const storeInfoMatch = pathname.match(/^\/groups\/([^/]+)\/store-info$/);
+  if (storeInfoMatch) {
+    const [, groupId] = storeInfoMatch;
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: "그룹 상세", path: `/groups/${groupId}` },
+      { label: "매장 정보 관리", path: pathname, current: true },
+    ];
+  }
+
+  const storeAskMatch = pathname.match(/^\/groups\/([^/]+)\/ask$/);
+  if (storeAskMatch) {
+    const [, groupId] = storeAskMatch;
+    return [
+      { label: "내 그룹", path: "/groups" },
+      { label: "그룹 상세", path: `/groups/${groupId}` },
+      { label: "AI에게 물어보기", path: pathname, current: true },
+    ];
+  }
+
   const groupDetailMatch = pathname.match(/^\/groups\/([^/]+)$/);
   if (groupDetailMatch) {
     return [
@@ -45,16 +65,6 @@ function buildBreadcrumbs(pathname, title) {
       { label: "내 그룹", path: "/groups" },
       { label: "태스크 상세", path: `/tasks/${taskId}` },
       { label: "사진 검증", path: pathname, current: true },
-    ];
-  }
-
-  const taskVerificationMatch = pathname.match(/^\/tasks\/([^/]+)\/verification$/);
-  if (taskVerificationMatch) {
-    const [, taskId] = taskVerificationMatch;
-    return [
-      { label: "내 그룹", path: "/groups" },
-      { label: "태스크 상세", path: `/tasks/${taskId}` },
-      { label: "검증 설정", path: pathname, current: true },
     ];
   }
 
