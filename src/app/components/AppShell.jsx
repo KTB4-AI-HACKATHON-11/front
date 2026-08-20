@@ -2,6 +2,7 @@ import { ChevronLeft, LayoutGrid, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import BrandMark from "./BrandMark";
 import { clearStoredUser } from "../lib/authStorage";
+import { logoutMember } from "../api/memberApi";
 import "./AppShell.css";
 
 const navigation = [
@@ -137,13 +138,19 @@ export default function AppShell({ user, children, title, description, backTo, a
           </div>
           <button
             className="icon-button"
-            onClick={() => {
+            onClick={async () => {
               if (!confirmNavigation()) {
                 return;
               }
 
+              try {
+                await logoutMember();
+              } catch {
+                // 서버 세션 만료 여부와 관계없이 로컬 로그인 정보는 정리합니다.
+              }
               clearStoredUser();
-              navigate("/login");
+              // App 최상위의 메모리 상태까지 확실히 비우기 위해 로그인 화면을 새로 엽니다.
+              window.location.assign("/login");
             }}
             title="로그아웃"
           >

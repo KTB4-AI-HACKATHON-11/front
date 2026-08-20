@@ -68,13 +68,13 @@ export function generateTaskChecklist({ groupId, managerId, title, message }) {
  * @returns {Promise<unknown>} 생성된 업무와 체크리스트 정보(data)를 그대로 반환합니다. 응답 필드가 아직
  *   호출부에 문서화되지 않아, taskId 등 특정 필드가 있다고 가정하지 말고 방어적으로 사용해야 합니다.
  */
-export async function createTask({ groupId, managerId, title, message, workerId, dueAt, checklists, referencePhotos }) {
+export async function createTask({ groupId, managerId, title, message, workerId, dueAt, notifyOnCompletion = false, checklists, referencePhotos }) {
   const optimizedReferencePhotos = await Promise.all(referencePhotos.map(optimizePhotoUpload));
   const formData = new FormData();
   formData.append(
     "request",
     new Blob(
-      [JSON.stringify({ managerId, title, message, workerId, dueAt, checklists })],
+      [JSON.stringify({ managerId, title, message, workerId, dueAt, notifyOnCompletion, checklists })],
       { type: "application/json" }
     )
   );
@@ -85,6 +85,13 @@ export async function createTask({ groupId, managerId, title, message, workerId,
   return apiRequest(`/groups/${groupId}/tasks`, {
     method: "POST",
     body: formData,
+  });
+}
+
+export function updateTaskCompletionNotification({ taskId, enabled }) {
+  return apiRequest(`/tasks/${taskId}/completion-notification`, {
+    method: "PATCH",
+    body: { enabled },
   });
 }
 

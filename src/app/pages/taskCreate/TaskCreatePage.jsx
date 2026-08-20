@@ -1,4 +1,4 @@
-import { ArrowRight, Camera, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowRight, BellRing, Camera, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBeforeUnload, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -7,6 +7,7 @@ import { ApiError } from "../../api/client";
 import { createTask, generateTaskChecklist } from "../../api/taskApi";
 import { getGroupDetail } from "../../api/groupApi";
 import { getGroupMembers } from "../../api/memberApi";
+import { ensurePushSubscription } from "../../api/pushApi";
 import { toDisplayMembers } from "../../lib/memberDisplay";
 import "./TaskCreatePage.css";
 
@@ -52,14 +53,40 @@ function loadDraft(groupId) {
       title: typeof parsedDraft.title === "string" ? parsedDraft.title : "",
       message: typeof parsedDraft.message === "string" ? parsedDraft.message : "",
       dueAt: typeof parsedDraft.dueAt === "string" ? parsedDraft.dueAt : "",
+      notifyOnCompletion: parsedDraft.notifyOnCompletion === true,
     };
   } catch {
     return null;
   }
 }
 
-function hasTaskDraftValue({ title, message, assigneeId, dueAt }, defaultAssigneeId) {
-  return Boolean(title.trim() || message.trim() || dueAt || (assigneeId && assigneeId !== defaultAssigneeId));
+function hasTaskDraftValue({ title, message, assigneeId, dueAt, notifyOnCompletion }, defaultAssigneeId) {
+  return Boolean(title.trim() || message.trim() || dueAt || notifyOnCompletion || (assigneeId && assigneeId !== defaultAssigneeId));
+}
+
+function CompletionNotificationOption({ enabled, busy, disabled, error, onToggle }) {
+  return (
+    <div className="task-notification-option">
+      <div className="task-notification-option__copy">
+        <span><BellRing size={15} /></span>
+        <div>
+          <strong>태스크 완료 알림</strong>
+          <small>담당자가 모든 항목을 끝내면 이 브라우저로 알려드려요.</small>
+        </div>
+      </div>
+      <button
+        className={`task-notification-option__toggle ${enabled ? "is-on" : ""}`}
+        type="button"
+        onClick={onToggle}
+        disabled={disabled || busy}
+        aria-pressed={enabled}
+      >
+        <span><i /></span>
+        {busy ? "준비 중" : enabled ? "알림 켬" : "알림 끔"}
+      </button>
+      {error ? <p role="alert">{error}</p> : null}
+    </div>
+  );
 }
 
 function validateTaskCreateForm({ title, message, assigneeId, dueAt }) {
@@ -106,6 +133,9 @@ export default function TaskCreatePage({ user }) {
   const [title, setTitle] = useState(draft?.title ?? "");
   const [message, setMessage] = useState(draft?.message ?? "");
   const [dueAt, setDueAt] = useState(draft?.dueAt ?? "");
+  const [notifyOnCompletion, setNotifyOnCompletion] = useState(draft?.notifyOnCompletion ?? false);
+  const [isPreparingNotification, setIsPreparingNotification] = useState(false);
+  const [notificationError, setNotificationError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
@@ -124,7 +154,7 @@ export default function TaskCreatePage({ user }) {
   const workerMembers = groupMembers.filter((member) => member.role === "WORKER");
   const defaultAssigneeId = workerMembers[0]?.id ?? "";
   const hasUnsavedChanges = Boolean(generatedChecklist)
-    || hasTaskDraftValue({ title, message, assigneeId, dueAt }, defaultAssigneeId);
+    || hasTaskDraftValue({ title, message, assigneeId, dueAt, notifyOnCompletion }, defaultAssigneeId);
   const hasValidMemberSession = Boolean(user?.memberId);
   const hasValidGroupId = Boolean(currentGroup);
   const hasManagerAccess = currentGroup?.role === "MANAGER";
@@ -181,16 +211,16 @@ export default function TaskCreatePage({ user }) {
       return;
     }
 
-    if (!hasTaskDraftValue({ title, message, assigneeId, dueAt }, defaultAssigneeId)) {
+    if (!hasTaskDraftValue({ title, message, assigneeId, dueAt, notifyOnCompletion }, defaultAssigneeId)) {
       window.sessionStorage.removeItem(getDraftStorageKey(groupId));
       return;
     }
 
     window.sessionStorage.setItem(
       getDraftStorageKey(groupId),
-      JSON.stringify({ assigneeId, title, message, dueAt })
+      JSON.stringify({ assigneeId, title, message, dueAt, notifyOnCompletion })
     );
-  }, [assigneeId, defaultAssigneeId, dueAt, generatedChecklist, groupId, message, title]);
+  }, [assigneeId, defaultAssigneeId, dueAt, generatedChecklist, groupId, message, notifyOnCompletion, title]);
 
   // 선택된 기준 사진의 object URL은 컴포넌트가 사라질 때 모두 해제합니다.
   // ref에 최신 상태를 계속 반영해두고 언마운트 시점의 값을 사용합니다.
@@ -224,6 +254,31 @@ export default function TaskCreatePage({ user }) {
   const clearReferencePhotos = () => {
     Object.values(referencePhotos).forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
     setReferencePhotos({});
+  };
+
+  const handleCompletionNotificationToggle = async () => {
+    if (isPreparingNotification || isGenerating || isSaving) return;
+    if (notifyOnCompletion) {
+      setNotifyOnCompletion(false);
+      setNotificationError("");
+      return;
+    }
+
+    setIsPreparingNotification(true);
+    setNotificationError("");
+    try {
+      await ensurePushSubscription();
+      setNotifyOnCompletion(true);
+    } catch (error) {
+      setNotifyOnCompletion(false);
+      setNotificationError(
+        error instanceof ApiError
+          ? error.message
+          : "브라우저 알림을 준비하지 못했습니다. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setIsPreparingNotification(false);
+    }
   };
 
   const handleGenerate = async (event) => {
@@ -470,6 +525,7 @@ export default function TaskCreatePage({ user }) {
         message: (generatedChecklist.message || message).trim(),
         workerId: assigneeId,
         dueAt: new Date(dueAt).toISOString(),
+        notifyOnCompletion,
         checklists,
         referencePhotos: referencePhotoFiles,
       });
@@ -629,6 +685,14 @@ export default function TaskCreatePage({ user }) {
             <Plus size={14} /> 체크리스트 추가
           </button>
 
+          <CompletionNotificationOption
+            enabled={notifyOnCompletion}
+            busy={isPreparingNotification}
+            disabled={isSaving}
+            error={notificationError}
+            onToggle={handleCompletionNotificationToggle}
+          />
+
           {saveError && (
             <p className="task-create-form__error" role="alert">{saveError}</p>
           )}
@@ -709,6 +773,13 @@ export default function TaskCreatePage({ user }) {
                   <span>담당자가 이 시간까지 체크리스트를 완료해야 합니다.</span>
                 </div>
               </div>
+              <CompletionNotificationOption
+                enabled={notifyOnCompletion}
+                busy={isPreparingNotification}
+                disabled={isGenerating}
+                error={notificationError}
+                onToggle={handleCompletionNotificationToggle}
+              />
               <div className="task-create-field">
                 <label className="field-label" htmlFor="task-prompt">업무 요구사항<span className="field-label__required">*</span></label>
                 <div className="task-prompt-wrap">

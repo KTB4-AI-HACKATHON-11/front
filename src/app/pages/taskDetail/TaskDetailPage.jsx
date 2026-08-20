@@ -1,10 +1,11 @@
-import { CheckCircle2, Clock3, Copy, UserRound } from "lucide-react";
+import { Bell, CheckCircle2, Clock3, Copy, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { getTaskDetail, updateSubTaskStatus } from "../../api/taskApi";
+import { getTaskDetail, updateSubTaskStatus, updateTaskCompletionNotification } from "../../api/taskApi";
+import { ensurePushSubscription } from "../../api/pushApi";
 import { groups } from "../../data/mockData";
 import { formatTaskDueAt, toSubTask } from "../../lib/taskDisplay";
 import SubTaskList from "./components/SubTaskList";
@@ -37,6 +38,8 @@ export default function TaskDetailPage({ user }) {
   const [completedIds, setCompletedIds] = useState([]);
   const [selectedSubTaskId, setSelectedSubTaskId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [notificationError, setNotificationError] = useState("");
+  const [isUpdatingNotification, setIsUpdatingNotification] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +88,8 @@ export default function TaskDetailPage({ user }) {
   const canPerform = !isOverdue
     && taskDetail?.workerId != null
     && String(taskDetail.workerId) === String(user?.memberId);
+  const canManageNotification = taskDetail?.managerId != null
+    && String(taskDetail.managerId) === String(user?.memberId);
   const currentTask = taskDetail && {
     title: taskDetail.title,
     assignee: taskDetail.workerNickname || "담당자 없음",
@@ -154,6 +159,28 @@ export default function TaskDetailPage({ user }) {
     navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`, { state: { groupId: currentGroupId } });
   };
 
+  const handleCompletionNotificationToggle = async () => {
+    if (!canManageNotification || isUpdatingNotification) return;
+    const enabled = !taskDetail.notifyOnCompletion;
+    setIsUpdatingNotification(true);
+    setNotificationError("");
+    try {
+      if (enabled) {
+        await ensurePushSubscription();
+      }
+      const result = await updateTaskCompletionNotification({ taskId, enabled });
+      setTaskDetail((current) => current ? { ...current, notifyOnCompletion: result.enabled } : current);
+    } catch (error) {
+      setNotificationError(
+        error instanceof ApiError
+          ? error.message
+          : "완료 알림 설정을 변경하지 못했습니다. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setIsUpdatingNotification(false);
+    }
+  };
+
   const progress = subTasks.length ? Math.round((completedIds.length / subTasks.length) * 100) : 0;
 
   if (!user?.memberId) {
@@ -195,6 +222,21 @@ export default function TaskDetailPage({ user }) {
             <span><UserRound size={13} /> 담당자 <b>{currentTask.assignee}</b></span>
             <span><Clock3 size={13} /> 마감 <b>{currentTask.dueDate}</b></span>
           </div>
+          {canManageNotification ? (
+            <div className="task-detail-notification">
+              <button
+                type="button"
+                className={taskDetail.notifyOnCompletion ? "is-on" : ""}
+                onClick={handleCompletionNotificationToggle}
+                disabled={isUpdatingNotification}
+                aria-pressed={taskDetail.notifyOnCompletion}
+              >
+                <Bell size={13} />
+                {isUpdatingNotification ? "변경 중..." : taskDetail.notifyOnCompletion ? "완료 알림 켜짐" : "완료 알림 꺼짐"}
+              </button>
+              {notificationError ? <small role="alert">{notificationError}</small> : null}
+            </div>
+          ) : null}
         </div>
         <div className="task-progress-ring" style={{ "--progress": `${progress * 3.6}deg` }}>
           <div><strong>{progress}%</strong><span>{completedIds.length}/{subTasks.length} 완료</span></div>

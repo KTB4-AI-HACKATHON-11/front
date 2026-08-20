@@ -30,6 +30,14 @@ export function loginMember({ nickname }) {
   });
 }
 
+export function getCurrentMember() {
+  return apiRequest("/members/me");
+}
+
+export function logoutMember() {
+  return apiRequest("/members/logout", { method: "POST" });
+}
+
 /**
  * 그룹 멤버 목록 조회
  * GET /api/v1/groups/{groupId}/members?requesterId={requesterId}

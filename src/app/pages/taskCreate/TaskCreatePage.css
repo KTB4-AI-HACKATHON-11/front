@@ -239,6 +239,32 @@
 
 .task-create-result__actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+.task-notification-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 22px;
+  padding: 13px 14px;
+  border: 1px solid #e6e3fb;
+  border-radius: 10px;
+  background: #faf9ff;
+}
+.task-notification-option__copy { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.task-notification-option__copy > span { display: flex; width: 31px; height: 31px; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 8px; background: #eeecff; color: #6255e7; }
+.task-notification-option__copy strong,
+.task-notification-option__copy small { display: block; }
+.task-notification-option__copy strong { color: #4d4d58; font-size: 11px; }
+.task-notification-option__copy small { margin-top: 3px; color: #9494a0; font-size: 9px; line-height: 1.4; }
+.task-notification-option__toggle { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px 6px 5px; border: 0; border-radius: 999px; background: #ededf2; color: #73737e; font-size: 9px; font-weight: 700; cursor: pointer; }
+.task-notification-option__toggle > span { position: relative; display: block; width: 27px; height: 16px; border-radius: 999px; background: #c9c9d1; transition: background-color 140ms ease; }
+.task-notification-option__toggle i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: white; transition: transform 140ms ease; }
+.task-notification-option__toggle.is-on { background: #e9f7f3; color: #177e69; }
+.task-notification-option__toggle.is-on > span { background: #25a889; }
+.task-notification-option__toggle.is-on i { transform: translateX(11px); }
+.task-notification-option__toggle:disabled { cursor: not-allowed; opacity: 0.65; }
+.task-notification-option > p { grid-column: 1 / -1; margin: -2px 0 0; color: #c23a3a; font-size: 9px; line-height: 1.45; }
+
 .task-prompt-wrap { position: relative; }
 .task-prompt-wrap .text-area { min-height: 154px; padding-bottom: 39px; }
 .task-prompt-wrap > span { position: absolute; right: 11px; bottom: 10px; display: flex; align-items: center; gap: 4px; color: #6255e7; font-size: 9px; }
@@ -264,4 +290,6 @@
 @media (max-width: 660px) {
   .task-create-assignees { grid-template-columns: 1fr; }
   .task-create-side { grid-template-columns: 1fr; }
+  .task-notification-option { grid-template-columns: 1fr; }
+  .task-notification-option__toggle { justify-self: start; }
 }
