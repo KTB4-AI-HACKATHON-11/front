@@ -7,8 +7,6 @@ import { ApiError } from "../../api/client";
 import { getGroupDetail } from "../../api/groupApi";
 import { getGroupMembers } from "../../api/memberApi";
 import { getGroupTasks } from "../../api/taskApi";
-import { groups } from "../../data/mockData";
-import { mergeGroups } from "../../lib/groupStorage";
 import { toDisplayMembers } from "../../lib/memberDisplay";
 import { toTaskCard } from "../../lib/taskDisplay";
 import GroupInviteModal from "./components/GroupInviteModal";
@@ -103,13 +101,8 @@ export default function GroupDetailPage({ user }) {
     );
   }
 
-  // role은 아직 백엔드 응답에 없을 수 있어 실제 값이 오면 그걸 쓰고, 없으면 기존처럼
-  // 로컬 mock/생성 그룹 데이터로 보완합니다. 백엔드가 내려주기 시작하면 mockGroupInfo/fallback
-  // 코드는 걷어내면 됩니다. memberCount는 이제 실제 멤버 목록 API 결과 개수를 우선 사용합니다.
-  const mockGroupInfo = mergeGroups(groups).find((group) => group.id === groupId);
-  const role = groupDetail.role ?? mockGroupInfo?.currentUserRole;
+  const role = groupDetail.role;
   const canManage = role === "MANAGER";
-  const memberCount = groupMembers.length || groupDetail.memberCount || mockGroupInfo?.memberCount;
   return (
     <AppShell
       user={user}
@@ -155,10 +148,11 @@ export default function GroupDetailPage({ user }) {
           </div>
         </div>
         <div className="group-detail-summary__metrics">
-          {memberCount != null && (
-            <div><span><Users size={13} /> 멤버</span><strong>{memberCount}명</strong></div>
+          {groupDetail.memberCount != null && (
+            <div><span><Users size={13} /> 멤버</span><strong>{groupDetail.memberCount}명</strong><small>{groupDetail.managerCount}명 매니저 · {groupDetail.workerCount}명 알바</small></div>
           )}
-          <div><span><CalendarDays size={13} /> 오늘 태스크</span><strong>{groupTasks.length}개</strong></div>
+          <div><span><CalendarDays size={13} /> 활성 태스크</span><strong>{groupDetail.taskCount}개</strong></div>
+          <div><span>전체 완료율</span><strong className="is-violet">{groupDetail.completionRate}%</strong></div>
         </div>
       </section>
 
