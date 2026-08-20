@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router";
 import BrandMark from "../../components/BrandMark";
 import NicknamePreview from "./components/NicknamePreview";
 import RoleSelector from "./components/RoleSelector";
-import { signupMember } from "../../api/memberApi";
 import { ApiError } from "../../api/client";
 import "./SignupPage.css";
 
