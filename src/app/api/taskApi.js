@@ -87,16 +87,13 @@ export function createTask({ groupId, managerId, title, message, workerId, dueAt
 }
 
 /**
- * 체크리스트 수행 여부 변경
- * PATCH /api/v1/tasks/{taskId}/checklists/{checklistId}/performed
- * @param {{ taskId: string|number, checklistId: string|number, requesterId: string|number, performed: boolean }} params
+ * CHECK 유형 체크리스트 수행 여부 변경
+ * PATCH /api/v1/tasks/{taskId}/sub-tasks/{subTaskId}
+ * @param {{ taskId: string|number, subTaskId: string|number, workerId: string|number, performed: boolean }} params
  */
-export function updateChecklistPerformed({ taskId, checklistId, requesterId, performed }) {
-  return apiRequest(
-    `/tasks/${taskId}/checklists/${checklistId}/performed?requesterId=${requesterId}`,
-    {
-      method: "PATCH",
-      body: { performed },
-    }
-  );
+export function updateSubTaskStatus({ taskId, subTaskId, workerId, performed }) {
+  return apiRequest(`/tasks/${taskId}/sub-tasks/${subTaskId}`, {
+    method: "PATCH",
+    body: { workerId, performed },
+  });
 }

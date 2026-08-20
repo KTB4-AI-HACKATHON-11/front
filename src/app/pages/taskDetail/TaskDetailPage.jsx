@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { getTaskDetail, updateChecklistPerformed } from "../../api/taskApi";
+import { getTaskDetail, updateSubTaskStatus } from "../../api/taskApi";
 import { groups } from "../../data/mockData";
 import { formatTaskDueAt, toSubTask } from "../../lib/taskDisplay";
 import SubTaskList from "./components/SubTaskList";
@@ -69,10 +69,10 @@ export default function TaskDetailPage({ user }) {
       willComplete ? [...current, subTaskId] : current.filter((id) => id !== subTaskId)
     );
     try {
-      const result = await updateChecklistPerformed({
+      const result = await updateSubTaskStatus({
         taskId,
-        checklistId: subTaskId,
-        requesterId: user.memberId,
+        subTaskId,
+        workerId: user.memberId,
         performed: willComplete,
       });
       setCompletedIds((current) =>
@@ -83,15 +83,18 @@ export default function TaskDetailPage({ user }) {
       setTaskDetail((current) => {
         if (!current) return current;
 
+        const nextChecklists = current.checklists.map((item) =>
+          String(item.checklistId) === String(subTaskId)
+            ? { ...item, performed: result?.performed ?? willComplete, performedAt: result?.performedAt ?? null }
+            : item
+        );
+        const completedItemCount = nextChecklists.filter((item) => item.performed).length;
+
         return {
           ...current,
-          progress: result?.progress ?? current.progress,
-          status: result?.taskStatus ?? current.status,
-          checklists: current.checklists.map((item) =>
-            String(item.checklistId) === String(subTaskId)
-              ? { ...item, performed: result?.performed ?? willComplete, performedAt: result?.performedAt ?? null }
-              : item
-          ),
+          progress: nextChecklists.length ? Math.round((completedItemCount / nextChecklists.length) * 100) : 0,
+          status: result?.status ?? current.status,
+          checklists: nextChecklists,
         };
       });
     } catch (error) {
