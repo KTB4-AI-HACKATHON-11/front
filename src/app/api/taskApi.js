@@ -1,5 +1,6 @@
 // 태스크 관련 API
 import { apiRequest } from "./client";
+import { optimizePhotoUpload } from "../lib/photoOptimization";
 
 /**
  * 그룹 태스크 목록 조회
@@ -67,7 +68,8 @@ export function generateTaskChecklist({ groupId, managerId, title, message }) {
  * @returns {Promise<unknown>} 생성된 업무와 체크리스트 정보(data)를 그대로 반환합니다. 응답 필드가 아직
  *   호출부에 문서화되지 않아, taskId 등 특정 필드가 있다고 가정하지 말고 방어적으로 사용해야 합니다.
  */
-export function createTask({ groupId, managerId, title, message, workerId, dueAt, checklists, referencePhotos }) {
+export async function createTask({ groupId, managerId, title, message, workerId, dueAt, checklists, referencePhotos }) {
+  const optimizedReferencePhotos = await Promise.all(referencePhotos.map(optimizePhotoUpload));
   const formData = new FormData();
   formData.append(
     "request",
@@ -76,7 +78,7 @@ export function createTask({ groupId, managerId, title, message, workerId, dueAt
       { type: "application/json" }
     )
   );
-  referencePhotos.forEach((file) => {
+  optimizedReferencePhotos.forEach((file) => {
     formData.append("referencePhotos", file, file.name);
   });
 
@@ -102,9 +104,10 @@ export function updateSubTaskStatus({ taskId, subTaskId, workerId, performed }) 
  * PHOTO 체크리스트 인증 사진 제출
  * POST /api/v1/assignments/{assignmentId}/photo-attempts?workerId={workerId}
  */
-export function submitPhotoAttempt({ assignmentId, workerId, photo }) {
+export async function submitPhotoAttempt({ assignmentId, workerId, photo }) {
+  const optimizedPhoto = await optimizePhotoUpload(photo);
   const formData = new FormData();
-  formData.append("photo", photo, photo.name);
+  formData.append("photo", optimizedPhoto, optimizedPhoto.name);
 
   return apiRequest(`/assignments/${assignmentId}/photo-attempts?workerId=${encodeURIComponent(workerId)}`, {
     method: "POST",
@@ -151,13 +154,14 @@ export function submitPhotoAttempt({ assignmentId, workerId, photo }) {
  *   업로드 실패 시 PHOTO_TOO_LARGE(파일 크기 초과) | INVALID_PHOTO(형식/검증 실패) — 정확한 HTTP 상태 코드는
  *   명세에 명시되어 있지 않아 호출부에서 status 값을 단정하지 말고 ApiError.message로 방어적으로 처리하세요.
  */
-export function updateVerificationSettings({ taskId, managerId, workerId, dueAt, items, referencePhotos = [] }) {
+export async function updateVerificationSettings({ taskId, managerId, workerId, dueAt, items, referencePhotos = [] }) {
+  const optimizedReferencePhotos = await Promise.all(referencePhotos.map(optimizePhotoUpload));
   const formData = new FormData();
   formData.append(
     "request",
     new Blob([JSON.stringify({ managerId, workerId, dueAt, items })], { type: "application/json" })
   );
-  referencePhotos.forEach((file) => {
+  optimizedReferencePhotos.forEach((file) => {
     formData.append("referencePhotos", file, file.name);
   });
 
