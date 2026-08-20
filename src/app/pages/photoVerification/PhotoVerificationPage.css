@@ -64,6 +64,15 @@
 .photo-success__score span { color: #6f887f; font-size: 9px; }
 .photo-success__score strong { color: #16876f; font-family: "Onest", sans-serif; font-size: 16px; }
 
+.photo-verifying { display: flex; min-height: 540px; align-items: center; justify-content: center; flex-direction: column; padding: 40px; text-align: center; }
+.photo-verifying__ring { position: relative; display: flex; width: 84px; height: 84px; align-items: center; justify-content: center; margin-bottom: 18px; border-radius: 50%; background: conic-gradient(#6255e7 var(--progress), #eef0fc 0deg); }
+.photo-verifying__ring::before { position: absolute; width: 68px; height: 68px; border-radius: 50%; background: white; content: ""; }
+.photo-verifying__ring > div { position: relative; z-index: 1; }
+.photo-verifying__ring strong { color: #4f43cd; font-family: "Onest", sans-serif; font-size: 15px; }
+.photo-verifying__eyebrow { color: #6255e7; font-size: 9px; font-weight: 700; }
+.photo-verifying h2 { margin: 6px 0 7px; font-family: "Onest", sans-serif; font-size: 24px; font-weight: 700; }
+.photo-verifying > p { margin: 0; color: #898994; font-size: 11px; line-height: 1.65; }
+
 @media (max-width: 850px) {
   .photo-verification-layout { grid-template-columns: 1fr; }
 }
