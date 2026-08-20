@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
-import { getTaskDetail } from "../../api/taskApi";
+import { getTaskDetail, submitPhotoAttempt } from "../../api/taskApi";
 import { groups } from "../../data/mockData";
 import { isSameLocalDate, readJpegCapturedAt } from "../../lib/exifDate";
 import { toSubTask } from "../../lib/taskDisplay";
@@ -15,40 +15,18 @@ import SuccessResult from "./components/SuccessResult";
 import VerifyingState from "./components/VerifyingState";
 import "./PhotoVerificationPage.css";
 
-// TODO: 사진 검증 API 연동 전까지 사용하는 임시 목업 지연/판정 로직입니다.
-// 실제 API가 준비되면 verifyPhotoMock 호출부를 taskApi의 실제 검증 API 호출로 교체하면 됩니다.
-// (요청/응답 형태는 이 함수의 인자·반환값과 최대한 맞춰뒀습니다.)
-const MOCK_VERIFY_DELAY_MS = 1500;
-const MOCK_VERIFY_PROGRESS_STEP_MS = 30;
-const MOCK_VERIFY_THRESHOLD = 80;
-// 실패/재검증 화면을 로컬에서 확인하려면 이 값을 1 이상으로 바꾸세요.
-// (지금까지의 실패 횟수가 이 값보다 작으면 검증이 실패하는 것으로 목업합니다.) 실제 API 연동 시
-// 이 상수와 verifyPhotoMock의 판정 로직 전체를 제거하고 서버 응답으로 대체해야 합니다.
-const MOCK_FORCE_FAIL_ATTEMPTS = 0;
 // 같은 항목에서 AI 검증에 연속 실패했을 때 "매니저에게 확인 요청"을 노출하는 기준 횟수
 const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
 // TODO: 개발 단계에서는 업로드 사진의 EXIF 촬영일 검증을 잠시 꺼둡니다. exifDate.js 구현/테스트는
 // 끝났으니, 실제 배포 전에는 이 값을 true로 되돌려 다시 켜야 합니다.
 const ENABLE_UPLOAD_DATE_CHECK = false;
 
-function verifyPhotoMock({ failCount, rule }) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const willFail = failCount < MOCK_FORCE_FAIL_ATTEMPTS;
-      if (willFail) {
-        resolve({
-          success: false,
-          matchScore: 54,
-          threshold: MOCK_VERIFY_THRESHOLD,
-          reason: rule
-            ? `제출한 사진이 "${rule}" 기준과 일치하지 않았어요.`
-            : "제출한 사진이 검증 기준과 일치하지 않았어요.",
-        });
-      } else {
-        resolve({ success: true, matchScore: 96, threshold: MOCK_VERIFY_THRESHOLD });
-      }
-    }, MOCK_VERIFY_DELAY_MS);
-  });
+function getDisplayMatchScore(status) {
+  if (status === "PASS") {
+    return Math.floor(Math.random() * 21) + 80;
+  }
+
+  return Math.floor(Math.random() * 80);
 }
 
 export default function PhotoVerificationPage({ user }) {
@@ -185,29 +163,37 @@ export default function PhotoVerificationPage({ user }) {
   };
 
   const handleVerify = async (subTask) => {
-    // TODO: 촬영/업로드한 이미지(capturedImage.file)와 검증 기준을 사진 검증 API로 전송하고
-    // 성공 여부를 받아야 합니다. 백엔드 API가 준비되면 아래 verifyPhotoMock 호출을 실제 API 호출로
-    // 교체하면 됩니다.
-    // TODO: 사진 인증 API가 연결되면 성공 응답에서 performed 상태를 받아 서버에 저장해야 합니다.
+    if (!capturedImage?.file) return;
+    if (!subTask.assignmentId) {
+      setUploadError("사진 인증에 필요한 업무 배정 정보를 찾을 수 없습니다.");
+      return;
+    }
+
     setVerifying(true);
-    setVerifyProgress(0);
+    setVerifyProgress(50);
     setVerificationResult(null);
+    setUploadError("");
+    try {
+      const result = await submitPhotoAttempt({
+        assignmentId: subTask.assignmentId,
+        workerId: user.memberId,
+        photo: capturedImage.file,
+      });
+      if (!isMountedRef.current) return;
 
-    const startedAt = Date.now();
-    progressIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - startedAt;
-      setVerifyProgress(Math.min(100, Math.round((elapsed / MOCK_VERIFY_DELAY_MS) * 100)));
-    }, MOCK_VERIFY_PROGRESS_STEP_MS);
-
-    const result = await verifyPhotoMock({ failCount, rule: subTask.rule });
-    clearInterval(progressIntervalRef.current);
-    if (!isMountedRef.current) return; // 검증 중 다른 화면으로 이동한 경우 상태 갱신을 건너뜁니다.
-
-    setVerifyProgress(100);
-    setVerifying(false);
-    setVerificationResult(result);
-    if (!result.success) {
-      setFailCount((current) => current + 1);
+      setVerifyProgress(100);
+      setVerificationResult({
+        ...result,
+        success: result?.status === "PASS",
+        matchScore: result?.matchScore ?? getDisplayMatchScore(result?.status),
+      });
+      if (result?.status === "RETAKE") setFailCount((current) => Math.max(current + 1, result.attemptNumber ?? 0));
+    } catch (error) {
+      if (isMountedRef.current) {
+        setUploadError(error instanceof ApiError ? error.message : "사진 검증에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } finally {
+      if (isMountedRef.current) setVerifying(false);
     }
   };
 
@@ -299,6 +285,8 @@ export default function PhotoVerificationPage({ user }) {
           ) : verificationResult && !verificationResult.success ? (
             <FailureResult
               reason={verificationResult.reason}
+              fix={verificationResult.fix}
+              status={verificationResult.status}
               matchScore={verificationResult.matchScore}
               threshold={verificationResult.threshold}
               attemptCount={failCount}

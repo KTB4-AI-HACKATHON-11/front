@@ -137,11 +137,12 @@ export default function TaskCreatePage({ user }) {
 
     async function loadGroupAndMembers() {
       setIsGroupLoading(true);
+      const apiGroupId = /^\d+$/.test(String(groupId)) ? Number(groupId) : groupId;
       // 그룹 상세와 그룹 멤버 목록은 서로 다른 API라 하나가 실패해도 나머지는 반영되도록
       // allSettled로 독립적으로 처리합니다.
       const [groupResult, membersResult] = await Promise.allSettled([
-        getGroupDetail({ groupId, memberId: user.memberId }),
-        getGroupMembers({ groupId, requesterId: user.memberId }),
+        getGroupDetail({ groupId: apiGroupId, memberId: user.memberId }),
+        getGroupMembers({ groupId: apiGroupId, requesterId: user.memberId }),
       ]);
 
       if (cancelled) return;

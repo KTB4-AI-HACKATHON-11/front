@@ -99,6 +99,20 @@ export function updateSubTaskStatus({ taskId, subTaskId, workerId, performed }) 
 }
 
 /**
+ * PHOTO 체크리스트 인증 사진 제출
+ * POST /api/v1/assignments/{assignmentId}/photo-attempts?workerId={workerId}
+ */
+export function submitPhotoAttempt({ assignmentId, workerId, photo }) {
+  const formData = new FormData();
+  formData.append("photo", photo, photo.name);
+
+  return apiRequest(`/assignments/${assignmentId}/photo-attempts?workerId=${encodeURIComponent(workerId)}`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+/**
  * 검증 기준 저장 (담당자, 마감 일시, 체크리스트 완료 방식과 기준 사진을 한 번에 수정)
  * PATCH /api/v1/tasks/{taskId}/verification-settings (multipart/form-data)
  * "request" 파트에 JSON 본문을, "referencePhotos" 파트에 기준 사진 파일들을 담아 함께 전송합니다.

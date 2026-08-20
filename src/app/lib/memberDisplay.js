@@ -19,7 +19,7 @@ export function toDisplayMembers(members) {
   return (members ?? []).map((member) => ({
     id: member.memberId,
     name: member.nickname,
-    role: member.role,
+    role: member.role?.toUpperCase(),
     initial: getMemberInitial(member.nickname),
     color: getMemberAvatarColor(member.memberId),
   }));

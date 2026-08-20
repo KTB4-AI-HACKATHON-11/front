@@ -8,13 +8,15 @@ export default function FailureResult({
   canRequestReview,
   onRetake,
   onRequestReview,
+  status,
+  fix,
 }) {
   return (
     <div className="photo-failure">
       <span className="photo-failure__icon"><AlertTriangle size={34} /></span>
-      <span className="photo-failure__eyebrow">VERIFICATION FAILED</span>
-      <h2>검증 기준에 맞지 않아요</h2>
-      <p>{reason || "제출한 사진이 검증 기준과 일치하지 않았어요."}</p>
+      <span className="photo-failure__eyebrow">{status === "DELAYED" ? "VERIFICATION DELAYED" : "VERIFICATION FAILED"}</span>
+      <h2>{status === "DELAYED" ? "검증이 지연되고 있어요" : "검증 기준에 맞지 않아요"}</h2>
+      <p>{[reason, fix].filter(Boolean).join(" ") || "제출한 사진이 검증 기준과 일치하지 않았어요."}</p>
       {typeof matchScore === "number" && (
         <div className="photo-failure__score">
           <span>AI 검증 일치도</span>
