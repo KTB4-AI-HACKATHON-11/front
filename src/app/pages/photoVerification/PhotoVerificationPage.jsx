@@ -225,7 +225,12 @@ export default function PhotoVerificationPage({ user }) {
     return <StatusState user={user} type="access" description="이 태스크의 담당 워커만 사진 검증을 수행할 수 있습니다." />;
   }
 
-  const subTasks = (taskDetail.checklists ?? []).map((item) => toSubTask(item, taskDetail.assignmentId));
+  const taskAssignmentId = taskDetail.assignmentId
+    ?? taskDetail.taskAssignmentId
+    ?? taskDetail.assignment?.assignmentId
+    ?? taskDetail.assignment?.id
+    ?? taskDetail.taskAssignment?.id;
+  const subTasks = (taskDetail.checklists ?? []).map((item) => toSubTask(item, taskAssignmentId));
   const subTaskIndex = subTasks.findIndex((item) => item.id === String(subTaskId));
   const subTask = subTaskIndex >= 0 ? subTasks[subTaskIndex] : null;
 

@@ -35,7 +35,7 @@ export function toTaskCard(task) {
 export function toSubTask(item, taskAssignmentId) {
   return {
     id: String(item.checklistId),
-    assignmentId: item.assignmentId ?? item.assignment?.assignmentId ?? item.assignment?.id ?? item.taskAssignmentId ?? taskAssignmentId,
+    assignmentId: item.assignmentId ?? item.assignment?.assignmentId ?? item.assignment?.id ?? item.taskAssignmentId ?? item.taskAssignment?.id ?? taskAssignmentId,
     title: item.title,
     instruction: item.instruction,
     completed: Boolean(item.performed),

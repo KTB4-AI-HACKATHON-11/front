@@ -71,7 +71,12 @@ export default function TaskDetailPage({ user }) {
 
   const currentGroupId = location.state?.groupId ?? taskDetail?.groupId;
   const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
-  const subTasks = (taskDetail?.checklists ?? []).map((item) => toSubTask(item, taskDetail?.assignmentId));
+  const taskAssignmentId = taskDetail?.assignmentId
+    ?? taskDetail?.taskAssignmentId
+    ?? taskDetail?.assignment?.assignmentId
+    ?? taskDetail?.assignment?.id
+    ?? taskDetail?.taskAssignment?.id;
+  const subTasks = (taskDetail?.checklists ?? []).map((item) => toSubTask(item, taskAssignmentId));
   const canPerform = taskDetail?.workerId != null && String(taskDetail.workerId) === String(user?.memberId);
   const currentTask = taskDetail && {
     title: taskDetail.title,
