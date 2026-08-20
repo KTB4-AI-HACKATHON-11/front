@@ -1,5 +1,5 @@
 import { ChevronLeft, LayoutGrid, LogOut } from "lucide-react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import BrandMark from "./BrandMark";
 import "./AppShell.css";
 
@@ -10,13 +10,14 @@ const navigation = [
 export default function AppShell({ user, children, title, description, backTo, actions }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const brandPath = location.pathname.startsWith("/groups") || location.pathname.startsWith("/tasks") ? "/groups" : "/";
 
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <div className="app-sidebar__brand">
+        <Link className="app-sidebar__brand" to={brandPath}>
           <BrandMark compact />
-        </div>
+        </Link>
 
         <nav className="app-sidebar__nav" aria-label="주요 메뉴">
           <p className="app-sidebar__section-label">WORKSPACE</p>

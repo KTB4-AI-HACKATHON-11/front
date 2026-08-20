@@ -52,7 +52,7 @@ export default function LoginPage({ onLogin }) {
   return (
     <div className="auth-layout">
       <section className="auth-layout__visual">
-        <div className="auth-layout__brand"><BrandMark /></div>
+        <Link className="auth-layout__brand" to="/"><BrandMark /></Link>
         <div className="auth-visual-copy">
           <span className="auth-kicker">TEAM TASK CHECK</span>
           <h1>해야 할 일을 분명하게,<br />완료 확인은 정확하게.</h1>
@@ -64,7 +64,7 @@ export default function LoginPage({ onLogin }) {
 
       <main className="auth-panel">
         <div className="auth-panel__inner">
-          <div className="auth-panel__mobile-brand"><BrandMark compact /></div>
+          <Link className="auth-panel__mobile-brand" to="/"><BrandMark compact /></Link>
           <div className="auth-panel__heading">
             <span>WELCOME BACK</span>
             <h2>로그인</h2>
@@ -88,7 +88,6 @@ export default function LoginPage({ onLogin }) {
             <div className="auth-field">
               <div className="auth-field__label-row">
                 <label className="field-label" htmlFor="login-password">비밀번호</label>
-                <button type="button">비밀번호 찾기</button>
               </div>
               <div className="password-input">
                 <input

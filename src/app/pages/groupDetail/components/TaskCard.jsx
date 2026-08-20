@@ -1,8 +1,7 @@
-import { Camera, ChevronRight, CircleCheck, Clock3, MessageSquareText, ShieldOff, UserRound } from "lucide-react";
+import { Camera, ChevronRight, CircleCheck, ShieldOff, UserRound } from "lucide-react";
 
 const verificationMap = {
   photo: { label: "사진 검증", icon: Camera, className: "task-card__verify--photo" },
-  text: { label: "텍스트 검증", icon: MessageSquareText, className: "task-card__verify--text" },
   none: { label: "검증 없음", icon: ShieldOff, className: "task-card__verify--none" },
 };
 
@@ -22,7 +21,6 @@ export default function TaskCard({ task, onOpen }) {
         </div>
         <div className="task-card__meta">
           <span><UserRound size={12} /> {task.assignee}</span>
-          <span><Clock3 size={12} /> {task.due}</span>
           <span>{task.completedSubTaskCount}/{task.subTaskCount}개 완료</span>
         </div>
       </div>

@@ -50,7 +50,7 @@ export default function SignupPage({ onSignup }) {
   return (
     <div className="signup-page">
       <header className="signup-page__header">
-        <BrandMark compact />
+        <Link className="signup-page__brand" to="/"><BrandMark compact /></Link>
         <Link to="/login"><ArrowLeft size={15} /> 로그인으로</Link>
       </header>
 
