@@ -21,7 +21,6 @@ export default function MemberList({ members }) {
           ))
         )}
       </div>
-      <button className="member-panel__more">전체 멤버 보기</button>
     </aside>
   );
 }
