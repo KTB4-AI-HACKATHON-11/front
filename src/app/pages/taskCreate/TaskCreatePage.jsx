@@ -5,9 +5,8 @@ import AppShell from "../../components/AppShell";
 import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
-import { groups } from "../../data/mockData";
+import { getGroupDetail } from "../../api/groupApi";
 import { members } from "../../data/mockData";
-import { mergeGroups } from "../../lib/groupStorage";
 import "./TaskCreatePage.css";
 
 const TASK_TITLE_MAX_LENGTH = 200;
@@ -79,7 +78,6 @@ function validateTaskCreateForm({ title, message, assigneeId }) {
 export default function TaskCreatePage({ user }) {
   const navigate = useNavigate();
   const { groupId } = useParams();
-  const currentGroup = mergeGroups(groups).find((group) => group.id === groupId);
   const workerMembers = members.filter((member) => member.role === "WORKER");
   const defaultAssigneeId = workerMembers[0]?.id ?? "";
   const draft = loadDraft(groupId, workerMembers);
@@ -90,10 +88,38 @@ export default function TaskCreatePage({ user }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [generatedChecklist, setGeneratedChecklist] = useState(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [currentGroup, setCurrentGroup] = useState(null);
+  const [isGroupLoading, setIsGroupLoading] = useState(true);
   const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) && !generatedChecklist;
   const hasValidMemberSession = Boolean(user?.memberId);
-  const hasValidGroupId = /^\d+$/.test(groupId ?? "") && Boolean(currentGroup);
-  const hasManagerAccess = currentGroup?.currentUserRole === "MANAGER";
+  const hasValidGroupId = Boolean(currentGroup);
+  const hasManagerAccess = currentGroup?.role === "MANAGER";
+
+  useEffect(() => {
+    if (!hasValidMemberSession) {
+      setIsGroupLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadGroup() {
+      setIsGroupLoading(true);
+      try {
+        const data = await getGroupDetail({ groupId, memberId: user.memberId });
+        if (!cancelled) setCurrentGroup(data);
+      } catch {
+        if (!cancelled) setCurrentGroup(null);
+      } finally {
+        if (!cancelled) setIsGroupLoading(false);
+      }
+    }
+
+    loadGroup();
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId, hasValidMemberSession, user?.memberId]);
 
   useEffect(() => {
     if (generatedChecklist) {
@@ -199,6 +225,8 @@ export default function TaskCreatePage({ user }) {
     >
       {!hasValidMemberSession ? (
         <StatusState type="login" user={user} embedded />
+      ) : isGroupLoading ? (
+        <p className="group-grid__empty">그룹 정보를 불러오는 중이에요...</p>
       ) : !hasValidGroupId ? (
         <StatusState type="group" user={user} embedded />
       ) : !hasManagerAccess || accessDenied ? (
