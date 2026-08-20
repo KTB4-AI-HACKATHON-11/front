@@ -108,4 +108,6 @@
   .task-detail-hero__meta { flex-direction: column; gap: 5px; }
   .subtask-row__number { display: none; }
   .subtask-row__photo { font-size: 0; }
+  .task-verification__reference { overflow: hidden; border-radius: 8px; background: #f5f5f8; }
+  .task-verification__reference img { height: auto; max-height: none; object-fit: contain; }
 }

@@ -40,12 +40,10 @@ export default function PhotoVerificationPage({ user }) {
   const [capturedImage, setCapturedImage] = useState(null); // { file, previewUrl }
   const [uploadError, setUploadError] = useState("");
   const [verifying, setVerifying] = useState(false);
-  const [verifyProgress, setVerifyProgress] = useState(0);
   const [verificationResult, setVerificationResult] = useState(null); // { success, status, reason, fix }
   const [failCount, setFailCount] = useState(0);
   const [reviewRequested, setReviewRequested] = useState(false);
   const capturedImageRef = useRef(capturedImage);
-  const progressIntervalRef = useRef(null);
   const isMountedRef = useRef(true);
 
   // 태스크 상세를 실제 API에서 불러옵니다. 이 화면은 이전에 mockData의 tasks 배열을 사용했기 때문에
@@ -103,7 +101,6 @@ export default function PhotoVerificationPage({ user }) {
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
-      clearInterval(progressIntervalRef.current);
       if (capturedImageRef.current?.previewUrl) {
         URL.revokeObjectURL(capturedImageRef.current.previewUrl);
       }
@@ -151,13 +148,8 @@ export default function PhotoVerificationPage({ user }) {
     }
 
     setVerifying(true);
-    setVerifyProgress(0);
     setVerificationResult(null);
     setUploadError("");
-    clearInterval(progressIntervalRef.current);
-    progressIntervalRef.current = window.setInterval(() => {
-      setVerifyProgress((current) => Math.min(current + 5, 95));
-    }, 120);
     try {
       const result = await submitPhotoAttempt({
         assignmentId: subTask.assignmentId,
@@ -166,15 +158,12 @@ export default function PhotoVerificationPage({ user }) {
       });
       if (!isMountedRef.current) return;
 
-      clearInterval(progressIntervalRef.current);
-      setVerifyProgress(100);
       setVerificationResult({
         ...result,
         success: result?.status === "PASS",
       });
       if (result?.status === "RETAKE") setFailCount((current) => Math.max(current + 1, result.attemptNumber ?? 0));
     } catch (error) {
-      clearInterval(progressIntervalRef.current);
       if (isMountedRef.current) {
         setUploadError(getPhotoActionError(error));
       }
@@ -275,7 +264,7 @@ export default function PhotoVerificationPage({ user }) {
             <SuccessResult
               reason={verificationResult.reason}
               description={subTask.instruction ? `${subTask.instruction} 기준으로 확인되었습니다.` : undefined}
-              onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId, verifiedChecklistId: subTaskId } })}
+              onConfirm={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}
             />
           ) : verificationResult && !verificationResult.success ? (
             <FailureResult
@@ -288,7 +277,7 @@ export default function PhotoVerificationPage({ user }) {
               onRequestReview={handleRequestReview}
             />
           ) : verifying ? (
-            <VerifyingState progress={verifyProgress} />
+            <VerifyingState />
           ) : (
             <>
               <div className="photo-camera-card__heading">

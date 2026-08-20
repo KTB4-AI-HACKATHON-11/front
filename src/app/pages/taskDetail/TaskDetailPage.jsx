@@ -46,13 +46,8 @@ export default function TaskDetailPage({ user }) {
       try {
         const data = await getTaskDetail({ taskId, requesterId: user?.memberId });
         if (!cancelled) {
-          const verifiedChecklistId = location.state?.verifiedChecklistId;
-          const nextChecklists = (data?.checklists ?? []).map((item) =>
-            String(item.checklistId) === String(verifiedChecklistId)
-              ? { ...item, performed: true }
-              : item
-          );
-          setTaskDetail({ ...data, checklists: nextChecklists });
+          const nextChecklists = data?.checklists ?? [];
+          setTaskDetail(data);
           setCompletedIds(nextChecklists.filter((item) => item.performed).map((item) => String(item.checklistId)));
           setSelectedSubTaskId((current) => current ?? String(nextChecklists[0]?.checklistId ?? ""));
         }
@@ -75,7 +70,7 @@ export default function TaskDetailPage({ user }) {
     return () => {
       cancelled = true;
     };
-  }, [location.state?.verifiedChecklistId, taskId, user?.memberId]);
+  }, [taskId, user?.memberId]);
 
   const currentGroupId = location.state?.groupId ?? taskDetail?.groupId;
   const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
@@ -155,7 +150,7 @@ export default function TaskDetailPage({ user }) {
     navigate(`/tasks/${taskId}/verify/photo/${targetSubTaskId}`, { state: { groupId: currentGroupId } });
   };
 
-  const progress = taskDetail?.progress ?? (subTasks.length ? Math.round((completedIds.length / subTasks.length) * 100) : 0);
+  const progress = subTasks.length ? Math.round((completedIds.length / subTasks.length) * 100) : 0;
 
   if (!user?.memberId) {
     return <StatusState user={user} type="login" />;
