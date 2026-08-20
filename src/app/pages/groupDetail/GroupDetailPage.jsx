@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Check, Copy, Plus, Sparkles, UserPlus, Users } from "lucide-react";
+import { BookOpen, CalendarDays, Check, Copy, Plus, Sparkles, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -115,9 +115,6 @@ export default function GroupDetailPage({ user }) {
       ]}
       actions={
         <div className="group-detail-actions">
-          <button className="secondary-button" type="button" onClick={() => setIsInviteModalOpen(true)}>
-            <UserPlus size={16} /><span>그룹 초대</span>
-          </button>
           <button className="secondary-button" onClick={() => navigate(`/groups/${groupId}/ask`)}>
             <Sparkles size={16} /><span>AI에게 물어보기</span>
           </button>
