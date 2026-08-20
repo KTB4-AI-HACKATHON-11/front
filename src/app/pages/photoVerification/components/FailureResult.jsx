@@ -1,10 +1,11 @@
-import { AlertTriangle, RotateCcw, UserCheck } from "lucide-react";
+import { AlertTriangle, ArrowLeft, RotateCcw, UserCheck } from "lucide-react";
 
 export default function FailureResult({
   reason,
   attemptCount,
   canRequestReview,
   onRetake,
+  onBack,
   onRequestReview,
   status,
   fix,
@@ -27,9 +28,15 @@ export default function FailureResult({
         </div>
       )}
       <div className="photo-failure__actions">
-        <button className="primary-button" type="button" onClick={onRetake}>
-          <RotateCcw size={15} /> 다시 촬영하기
-        </button>
+        {status === "DELAYED" ? (
+          <button className="primary-button" type="button" onClick={onBack}>
+            <ArrowLeft size={15} /> 태스크로 돌아가기
+          </button>
+        ) : (
+          <button className="primary-button" type="button" onClick={onRetake}>
+            <RotateCcw size={15} /> 다시 촬영하기
+          </button>
+        )}
         {canRequestReview && (
           <button className="secondary-button" type="button" onClick={onRequestReview}>
             <UserCheck size={15} /> 매니저에게 확인 요청하기

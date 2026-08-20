@@ -274,6 +274,7 @@ export default function PhotoVerificationPage({ user }) {
               attemptCount={failCount}
               canRequestReview={canRequestReview}
               onRetake={handleRetake}
+              onBack={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}
               onRequestReview={handleRequestReview}
             />
           ) : verifying ? (

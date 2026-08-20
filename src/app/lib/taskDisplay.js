@@ -2,6 +2,7 @@ const statusMap = {
   WAITING: "waiting",
   IN_PROGRESS: "active",
   COMPLETED: "completed",
+  OVERDUE: "overdue",
 };
 
 export function formatTaskDueAt(dueAt) {

@@ -10,8 +10,11 @@ import { getGroupMembers } from "../../api/memberApi";
 import { toDisplayMembers } from "../../lib/memberDisplay";
 import "./TaskCreatePage.css";
 
-const TASK_TITLE_MAX_LENGTH = 200;
+const TASK_TITLE_MAX_LENGTH = 80;
 const TASK_MESSAGE_MAX_LENGTH = 1000;
+const CHECKLIST_TITLE_MAX_LENGTH = 80;
+const CHECKLIST_INSTRUCTION_MAX_LENGTH = 500;
+const CHECKLIST_RULE_MAX_LENGTH = 1000;
 // 태스크 최종 등록 API가 체크리스트를 최대 20개까지만 허용합니다.
 const TASK_CHECKLIST_MAX_LENGTH = 20;
 const TASK_TITLE_PLACEHOLDER = "예: 오픈 전 매장 점검";
@@ -120,7 +123,8 @@ export default function TaskCreatePage({ user }) {
   const referencePhotosRef = useRef(referencePhotos);
   const workerMembers = groupMembers.filter((member) => member.role === "WORKER");
   const defaultAssigneeId = workerMembers[0]?.id ?? "";
-  const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId, dueAt }, defaultAssigneeId) && !generatedChecklist;
+  const hasUnsavedChanges = Boolean(generatedChecklist)
+    || hasTaskDraftValue({ title, message, assigneeId, dueAt }, defaultAssigneeId);
   const hasValidMemberSession = Boolean(user?.memberId);
   const hasValidGroupId = Boolean(currentGroup);
   const hasManagerAccess = currentGroup?.role === "MANAGER";
@@ -393,6 +397,11 @@ export default function TaskCreatePage({ user }) {
       return;
     }
 
+    if (trimmedTaskTitle.length > TASK_TITLE_MAX_LENGTH) {
+      setSaveError(`태스크 제목은 ${TASK_TITLE_MAX_LENGTH}자 이하로 입력해주세요.`);
+      return;
+    }
+
     if (checklistDraft.length === 0) {
       setSaveError("체크리스트 항목을 1개 이상 추가해주세요.");
       return;
@@ -403,8 +412,23 @@ export default function TaskCreatePage({ user }) {
       return;
     }
 
+    if (checklistDraft.some((item) => item.title.trim().length > CHECKLIST_TITLE_MAX_LENGTH)) {
+      setSaveError(`체크리스트 제목은 ${CHECKLIST_TITLE_MAX_LENGTH}자 이하로 입력해주세요.`);
+      return;
+    }
+
+    if (checklistDraft.some((item) => item.instruction.trim().length > CHECKLIST_INSTRUCTION_MAX_LENGTH)) {
+      setSaveError(`체크리스트 내용은 ${CHECKLIST_INSTRUCTION_MAX_LENGTH}자 이하로 입력해주세요.`);
+      return;
+    }
+
     if (photoChecklistItems.some((item) => !item.rule.trim())) {
       setSaveError("사진 검증으로 설정한 항목에는 검증 기준을 입력해주세요.");
+      return;
+    }
+
+    if (photoChecklistItems.some((item) => item.rule.trim().length > CHECKLIST_RULE_MAX_LENGTH)) {
+      setSaveError(`사진 검증 기준은 ${CHECKLIST_RULE_MAX_LENGTH}자 이하로 입력해주세요.`);
       return;
     }
 
@@ -518,6 +542,7 @@ export default function TaskCreatePage({ user }) {
                       value={item.title}
                       onChange={(event) => handleChecklistFieldChange(item.sequence, "title", event.target.value)}
                       placeholder="체크리스트 제목"
+                      maxLength={CHECKLIST_TITLE_MAX_LENGTH}
                       disabled={isSaving}
                       aria-label={`체크리스트 ${index + 1} 제목`}
                     />
@@ -548,6 +573,7 @@ export default function TaskCreatePage({ user }) {
                     value={item.instruction}
                     onChange={(event) => handleChecklistFieldChange(item.sequence, "instruction", event.target.value)}
                     placeholder="수행 방법을 설명해주세요."
+                    maxLength={CHECKLIST_INSTRUCTION_MAX_LENGTH}
                     disabled={isSaving}
                     rows={2}
                     aria-label={`체크리스트 ${index + 1} 내용`}
@@ -559,6 +585,7 @@ export default function TaskCreatePage({ user }) {
                         value={item.rule}
                         onChange={(event) => handleChecklistFieldChange(item.sequence, "rule", event.target.value)}
                         placeholder="검증 기준을 입력해주세요. 예: 원두 호퍼가 80% 이상 채워져 있어야 함"
+                        maxLength={CHECKLIST_RULE_MAX_LENGTH}
                         disabled={isSaving}
                         aria-label={`체크리스트 ${index + 1} 검증 기준`}
                       />

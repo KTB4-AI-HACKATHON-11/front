@@ -22,6 +22,8 @@ export default function GroupDetailPage({ user }) {
   const [groupDetail, setGroupDetail] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const [groupTasks, setGroupTasks] = useState([]);
+  const [membersErrorMessage, setMembersErrorMessage] = useState("");
+  const [tasksErrorMessage, setTasksErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [errorType, setErrorType] = useState("group");
@@ -32,6 +34,8 @@ export default function GroupDetailPage({ user }) {
     async function loadGroupDetailAndMembers() {
       setIsLoading(true);
       setErrorMessage("");
+      setMembersErrorMessage("");
+      setTasksErrorMessage("");
       // 그룹 상세와 멤버 목록은 서로 다른 API라 하나가 실패해도 나머지는 반영되도록
       // allSettled로 독립적으로 처리합니다.
       const [groupResult, membersResult, taskResult] = await Promise.allSettled([
@@ -58,12 +62,27 @@ export default function GroupDetailPage({ user }) {
         }
       }
 
-      setGroupMembers(membersResult.status === "fulfilled" ? toDisplayMembers(membersResult.value) : []);
-      setGroupTasks(
-        taskResult.status === "fulfilled"
-          ? (taskResult.value?.items ?? []).map(toTaskCard)
-          : []
-      );
+      if (membersResult.status === "fulfilled") {
+        setGroupMembers(toDisplayMembers(membersResult.value));
+      } else {
+        setGroupMembers([]);
+        setMembersErrorMessage(
+          membersResult.reason instanceof ApiError
+            ? membersResult.reason.message
+            : "멤버 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+        );
+      }
+
+      if (taskResult.status === "fulfilled") {
+        setGroupTasks((taskResult.value?.items ?? []).map(toTaskCard));
+      } else {
+        setGroupTasks([]);
+        setTasksErrorMessage(
+          taskResult.reason instanceof ApiError
+            ? taskResult.reason.message
+            : "태스크 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요."
+        );
+      }
       setIsLoading(false);
     }
 
@@ -167,7 +186,9 @@ export default function GroupDetailPage({ user }) {
             <div><h2>태스크 목록</h2><span>총 {groupTasks.length}개</span></div>
           </div>
           <div className="task-list">
-            {groupTasks.length === 0 ? (
+            {tasksErrorMessage ? (
+              <p className="group-grid__empty" role="alert">{tasksErrorMessage}</p>
+            ) : groupTasks.length === 0 ? (
               <p className="group-grid__empty">아직 이 그룹에 연결된 태스크가 없습니다.</p>
             ) : (
               groupTasks.map((task) => (
@@ -180,7 +201,11 @@ export default function GroupDetailPage({ user }) {
             )}
           </div>
         </section>
-        <MemberList members={groupMembers} onInvite={() => setIsInviteModalOpen(true)} />
+        <MemberList
+          members={groupMembers}
+          errorMessage={membersErrorMessage}
+          onInvite={() => setIsInviteModalOpen(true)}
+        />
       </div>
       {isInviteModalOpen && (
         <GroupInviteModal groupId={groupId} onClose={() => setIsInviteModalOpen(false)} />

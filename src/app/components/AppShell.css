@@ -389,6 +389,11 @@
   color: #696977;
 }
 
+.status-pill--overdue {
+  background: #fdf0f0;
+  color: #bd3f3f;
+}
+
 .status-pill--manager {
   background: #eeecff;
   color: #5a4bd6;

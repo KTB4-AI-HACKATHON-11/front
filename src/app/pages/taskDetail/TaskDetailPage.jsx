@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock3, Copy, MoreHorizontal, UserRound } from "lucide-react";
+import { CheckCircle2, Clock3, Copy, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -16,6 +16,7 @@ const taskStatusMap = {
   PENDING: { label: "대기 중", className: "waiting" },
   IN_PROGRESS: { label: "진행 중", className: "active" },
   COMPLETED: { label: "완료", className: "complete" },
+  OVERDUE: { label: "마감됨", className: "overdue" },
 };
 
 function getChecklistActionError(error, fallback) {
@@ -80,7 +81,10 @@ export default function TaskDetailPage({ user }) {
     ?? taskDetail?.assignment?.id
     ?? taskDetail?.taskAssignment?.id;
   const subTasks = (taskDetail?.checklists ?? []).map((item) => toSubTask(item, taskAssignmentId));
-  const canPerform = taskDetail?.workerId != null && String(taskDetail.workerId) === String(user?.memberId);
+  const isOverdue = taskDetail?.status === "OVERDUE";
+  const canPerform = !isOverdue
+    && taskDetail?.workerId != null
+    && String(taskDetail.workerId) === String(user?.memberId);
   const currentTask = taskDetail && {
     title: taskDetail.title,
     assignee: taskDetail.workerNickname || "담당자 없음",
@@ -178,7 +182,6 @@ export default function TaskDetailPage({ user }) {
         { label: currentGroup.name, path: `/groups/${groupPath}` },
         { label: currentTask.title, path: `/tasks/${taskId}`, current: true },
       ]}
-      actions={<button className="icon-button icon-button--bordered" title="태스크 메뉴"><MoreHorizontal size={18} /></button>}
     >
       <section className="task-detail-hero page-card">
         <div className="task-detail-hero__main">
@@ -213,6 +216,11 @@ export default function TaskDetailPage({ user }) {
             onPhotoOpen={openPhotoVerification}
             canPerform={canPerform}
           />
+          {isOverdue && (
+            <p className="task-detail-content__error" role="alert">
+              마감 시간이 지나 체크리스트를 더 이상 수행할 수 없습니다.
+            </p>
+          )}
           {errorMessage && (
             <p className="task-detail-content__error" role="alert">{errorMessage}</p>
           )}
