@@ -20,13 +20,12 @@ const SUGGESTED_QUESTIONS = [
 // AI 백엔드 명세(POST /v1/knowledge/answer)의 question 필드 상한(1~200자)에 맞춥니다.
 const QUESTION_MAX_LENGTH = 200;
 
-function getConversationStorageKey(groupId) {
-  return `checkon:store-ask-conversation:${groupId}`;
-}
+function createConversationId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
 
-function loadConversationId(groupId) {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(getConversationStorageKey(groupId)) || null;
+  return `conversation-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 let messageIdCounter = 0;
@@ -43,7 +42,7 @@ export default function StoreAskPage({ user }) {
   // 매장 정보 등록 여부를 확인하기 전까지는 힌트 배너를 띄우지 않도록 낙관적으로 true로 둡니다.
   const [hasStoreInfo, setHasStoreInfo] = useState(true);
   const [messages, setMessages] = useState([]);
-  const [conversationId, setConversationId] = useState(() => loadConversationId(groupId));
+  const [conversationId, setConversationId] = useState(createConversationId);
   const [question, setQuestion] = useState("");
   const [isAsking, setIsAsking] = useState(false);
   const listEndRef = useRef(null);
@@ -92,14 +91,13 @@ export default function StoreAskPage({ user }) {
   }, [messages]);
 
   useEffect(() => {
-    setConversationId(loadConversationId(groupId));
+    setConversationId(createConversationId());
     setMessages([]);
     setQuestion("");
   }, [groupId]);
 
   const startNewConversation = () => {
-    window.localStorage.removeItem(getConversationStorageKey(groupId));
-    setConversationId(null);
+    setConversationId(createConversationId());
     setMessages([]);
     setQuestion("");
   };
@@ -123,9 +121,6 @@ export default function StoreAskPage({ user }) {
       const result = await askStoreQuestion({ conversationId, question: trimmed });
       const nextConversationId = result?.conversationId ?? conversationId;
       setConversationId(nextConversationId);
-      if (nextConversationId) {
-        window.localStorage.setItem(getConversationStorageKey(groupId), String(nextConversationId));
-      }
       setMessages((current) =>
         current.map((message) =>
           message.id === assistantMessageId ? { ...message, status: "done", content: result?.answer ?? "" } : message
