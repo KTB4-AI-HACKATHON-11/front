@@ -3,14 +3,12 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import BrandMark from "../../components/BrandMark";
 import NicknamePreview from "./components/NicknamePreview";
-import RoleSelector from "./components/RoleSelector";
 import { ApiError } from "../../api/client";
 import { signupMember } from "../../api/memberApi";
 import "./SignupPage.css";
 
 export default function SignupPage({ onSignup }) {
   const navigate = useNavigate();
-  const [role, setRole] = useState("MANAGER");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -30,7 +28,7 @@ export default function SignupPage({ onSignup }) {
     setErrorMessage("");
     setIsSubmitting(true);
     try {
-      const member = await signupMember({ nickname, role });
+      const member = await signupMember({ nickname });
       onSignup({
         memberId: member.memberId,
         nickname: member.nickname,
@@ -77,11 +75,6 @@ export default function SignupPage({ onSignup }) {
             />
             <p className="field-hint">그룹의 멤버 목록과 태스크 담당자 이름으로 표시됩니다.</p>
           </div>
-
-          <fieldset className="signup-role-fieldset" disabled={isSubmitting}>
-            <legend>역할 선택<span className="field-label__required">*</span></legend>
-            <RoleSelector value={role} onChange={setRole} />
-          </fieldset>
 
           {errorMessage && (
             <p className="signup-form__error" role="alert">{errorMessage}</p>
