@@ -71,7 +71,7 @@ export default function TaskDetailPage({ user }) {
 
   const currentGroupId = location.state?.groupId ?? taskDetail?.groupId;
   const currentGroup = groups.find((group) => String(group.id) === String(currentGroupId)) ?? groups[0];
-  const subTasks = (taskDetail?.checklists ?? []).map(toSubTask);
+  const subTasks = (taskDetail?.checklists ?? []).map((item) => toSubTask(item, taskDetail?.assignmentId));
   const canPerform = taskDetail?.workerId != null && String(taskDetail.workerId) === String(user?.memberId);
   const currentTask = taskDetail && {
     title: taskDetail.title,
@@ -95,7 +95,7 @@ export default function TaskDetailPage({ user }) {
       const result = await updateSubTaskStatus({
         taskId,
         subTaskId,
-        workerId: user.memberId,
+        workerId: taskDetail.workerId,
         performed: willComplete,
       });
       setCompletedIds((current) =>
