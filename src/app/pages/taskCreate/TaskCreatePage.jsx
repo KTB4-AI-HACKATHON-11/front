@@ -93,6 +93,7 @@ export default function TaskCreatePage({ user }) {
   const hasUnsavedChanges = hasTaskDraftValue({ title, message, assigneeId }, defaultAssigneeId) && !generatedChecklist;
   const hasValidMemberSession = Boolean(user?.memberId);
   const hasValidGroupId = /^\d+$/.test(groupId ?? "") && Boolean(currentGroup);
+  const hasManagerAccess = currentGroup?.currentUserRole === "MANAGER";
 
   useEffect(() => {
     if (generatedChecklist) {
@@ -138,6 +139,11 @@ export default function TaskCreatePage({ user }) {
 
     if (!hasValidGroupId) {
       setErrorMessage("유효하지 않은 그룹입니다. 그룹 목록으로 돌아가 다시 시도해주세요.");
+      return;
+    }
+
+    if (!hasManagerAccess) {
+      setAccessDenied(true);
       return;
     }
 
@@ -195,7 +201,7 @@ export default function TaskCreatePage({ user }) {
         <StatusState type="login" user={user} embedded />
       ) : !hasValidGroupId ? (
         <StatusState type="group" user={user} embedded />
-      ) : accessDenied ? (
+      ) : !hasManagerAccess || accessDenied ? (
         <StatusState type="access" user={user} embedded description="현재 로그인한 계정으로는 이 그룹에서 태스크를 생성할 수 없습니다. 그룹에 다시 참여했는지 확인해주세요." />
       ) : generatedChecklist ? (
         <section className="page-card task-create-result">
