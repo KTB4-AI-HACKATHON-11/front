@@ -3,7 +3,8 @@
 //   성공: { code: string, message: string, data: T }
 //   실패: { code: string, message: string, data: null } (HTTP 4xx/5xx)
 
-export const API_BASE_URL = "http://localhost:8080/api/v1";
+// export const API_BASE_URL = "http://localhost:8080/api/v1";
+const API_BASE_URL = "https://api.checkon.cloud/api/v1";
 
 export class ApiError extends Error {
   constructor(code, message, status) {
