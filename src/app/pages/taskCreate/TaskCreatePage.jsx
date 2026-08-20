@@ -1,24 +1,42 @@
 import { ArrowRight, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
-import GeneratedChecklist from "./components/GeneratedChecklist";
-import VerificationPanel from "./components/VerificationPanel";
 import "./TaskCreatePage.css";
+
+const generatedTaskItems = [
+  "출입구와 유리문 청결 상태 확인",
+  "조명과 디지털 사이니지 전원 켜기",
+  "계산대 시재와 영수증 용지 확인",
+  "메인 테이블 상품 진열 상태 확인",
+  "오픈 준비가 끝난 매장 전경 촬영",
+];
 
 export default function TaskCreatePage({ user }) {
   const navigate = useNavigate();
-  const [verificationEnabled, setVerificationEnabled] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!isGenerating) return undefined;
+
+    const timer = window.setTimeout(() => {
+      // TODO: 자연어 요구사항을 GPT API로 보내 반환된 SUB_TASK 목록으로 교체해야 합니다.
+      // TODO: API 응답으로 받은 TASK_ID와 체크리스트를 검증 설정 페이지로 전달해야 합니다.
+      navigate("/tasks/task-101/verification", {
+        state: { taskTitle: "오픈 전 매장 점검", items: generatedTaskItems },
+      });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [isGenerating, navigate]);
 
   const handleGenerate = (event) => {
     event.preventDefault();
-    // TODO: 자연어 요구사항을 GPT API로 보내 SUB_TASK 목록으로 변환해야 합니다.
-    // TODO: 검증 기준과 함께 태스크 생성 API를 호출하고 반환된 TASK_ID로 이동해야 합니다.
-    navigate("/tasks/task-101");
+    if (!isGenerating) setIsGenerating(true);
   };
 
   return (
-    <AppShell user={user} title="새 태스크 만들기" description="성수 플래그십 스토어" backTo="/groups/group-1">
+    <AppShell user={user} title="새 태스크 만들기" description="성수 플래그십 스토어" backTo="/groups/482731">
       <form className="task-create-layout" onSubmit={handleGenerate}>
         <div className="task-create-main">
           <section className="page-card task-create-form">
@@ -44,17 +62,19 @@ export default function TaskCreatePage({ user }) {
               </div>
             </div>
           </section>
-          <VerificationPanel
-            enabled={verificationEnabled}
-            onEnabledChange={setVerificationEnabled}
-          />
-        </div>
 
-        <div className="task-create-side">
-          <GeneratedChecklist />
           <div className="task-create-submit page-card">
-            <div><span>생성 후 상태</span><strong>대기</strong></div>
-            <button className="primary-button" type="submit"><Sparkles size={15} /> AI로 태스크 생성 <ArrowRight size={15} /></button>
+            {isGenerating ? (
+              <div className="task-create-loading" aria-live="polite">
+                <span className="task-create-loading__spinner" />
+                <div><strong>AI가 태스크를 정리하고 있어요</strong><small>잠시만 기다려주세요.</small></div>
+              </div>
+            ) : (
+              <>
+                <div><span>생성 후 다음 단계</span><strong>검증 설정</strong></div>
+                <button className="primary-button" type="submit"><Sparkles size={15} /> AI로 태스크 생성 <ArrowRight size={15} /></button>
+              </>
+            )}
           </div>
         </div>
       </form>

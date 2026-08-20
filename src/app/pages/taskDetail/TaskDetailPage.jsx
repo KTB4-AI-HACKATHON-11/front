@@ -28,7 +28,7 @@ export default function TaskDetailPage({ user }) {
       user={user}
       title="태스크 상세"
       description="성수 플래그십 스토어"
-      backTo="/groups/group-1"
+      backTo="/groups/482731"
       actions={<button className="icon-button icon-button--bordered" title="태스크 메뉴"><MoreHorizontal size={18} /></button>}
     >
       <section className="task-detail-hero page-card">
