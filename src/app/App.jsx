@@ -7,6 +7,7 @@ import GroupListPage from "./pages/groups/GroupListPage";
 import GroupCreatePage from "./pages/groupCreate/GroupCreatePage";
 import GroupDetailPage from "./pages/groupDetail/GroupDetailPage";
 import TaskCreatePage from "./pages/taskCreate/TaskCreatePage";
+import TaskVerificationPage from "./pages/taskVerification/TaskVerificationPage";
 import TaskDetailPage from "./pages/taskDetail/TaskDetailPage";
 import PhotoVerificationPage from "./pages/photoVerification/PhotoVerificationPage";
 
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/groups/:groupId" element={<GroupDetailPage user={user} />} />
         <Route path="/groups/:groupId/tasks/new" element={<TaskCreatePage user={user} />} />
         <Route path="/tasks/new" element={<TaskCreatePage user={user} />} />
+        <Route path="/tasks/:taskId/verification" element={<TaskVerificationPage user={user} />} />
         <Route path="/tasks/:taskId" element={<TaskDetailPage user={user} />} />
         <Route
           path="/tasks/:taskId/verify/photo"

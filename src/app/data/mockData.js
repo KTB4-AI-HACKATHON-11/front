@@ -1,6 +1,6 @@
 export const groups = [
   {
-    id: "group-1",
+    id: "482731",
     name: "성수 플래그십 스토어",
     description: "오픈 준비부터 마감 점검까지 현장 운영 업무를 관리합니다.",
     memberCount: 8,
@@ -11,7 +11,7 @@ export const groups = [
     currentUserRole: "MANAGER",
   },
   {
-    id: "group-2",
+    id: "916204",
     name: "신입 크루 온보딩",
     description: "신규 입사자의 첫 주 체크리스트와 교육 이력을 확인합니다.",
     memberCount: 5,
@@ -22,7 +22,7 @@ export const groups = [
     currentUserRole: "WORKER",
   },
   {
-    id: "group-3",
+    id: "307856",
     name: "8월 프로모션 운영",
     description: "프로모션 소재, 재고, 매장 진열 상태를 함께 점검합니다.",
     memberCount: 11,

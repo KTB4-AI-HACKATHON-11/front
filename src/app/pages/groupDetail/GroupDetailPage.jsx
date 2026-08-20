@@ -32,7 +32,7 @@ export default function GroupDetailPage({ user }) {
       backTo="/groups"
       actions={
         canManage && (
-          <button className="primary-button" onClick={() => navigate("/groups/group-1/tasks/new")}>
+        <button className="primary-button" onClick={() => navigate(`/groups/${groupId}/tasks/new`)}>
             <Plus size={16} /><span>새 태스크</span>
           </button>
         )

@@ -10,7 +10,7 @@ export default function GroupCreatePage({ user }) {
   const handleCreate = (event) => {
     event.preventDefault();
     // TODO: 그룹 생성 API에 그룹명과 설명을 전달하고 생성된 GROUP_ID를 받아야 합니다.
-    navigate("/groups/group-1");
+    navigate("/groups/482731");
   };
 
   return (

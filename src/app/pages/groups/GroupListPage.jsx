@@ -1,12 +1,15 @@
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "../../components/AppShell";
 import { groups } from "../../data/mockData";
 import GroupCard from "./components/GroupCard";
+import GroupJoinModal from "./components/GroupJoinModal";
 import "./GroupListPage.css";
 
 export default function GroupListPage({ user }) {
   const navigate = useNavigate();
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
   return (
     <AppShell
@@ -14,9 +17,14 @@ export default function GroupListPage({ user }) {
       title="내 그룹"
       description={`${user.nickname}님이 참여하고 있는 업무 그룹입니다.`}
       actions={
-        <button className="primary-button" onClick={() => navigate("/groups/new")}>
-          <Plus size={16} /><span>새 그룹</span>
-        </button>
+        <div className="group-header-actions">
+          <button className="secondary-button" onClick={() => setIsJoinModalOpen(true)}>
+            <UserPlus size={16} /><span>그룹 참여</span>
+          </button>
+          <button className="primary-button" onClick={() => navigate("/groups/new")}>
+            <Plus size={16} /><span>새 그룹</span>
+          </button>
+        </div>
       }
     >
       <section className="group-overview">
@@ -53,6 +61,15 @@ export default function GroupListPage({ user }) {
           <small>함께 일할 공간을 추가하세요</small>
         </button>
       </section>
+      {isJoinModalOpen && (
+        <GroupJoinModal
+          onClose={() => setIsJoinModalOpen(false)}
+          onJoined={(groupId) => {
+            setIsJoinModalOpen(false);
+            navigate(`/groups/${groupId}`);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
