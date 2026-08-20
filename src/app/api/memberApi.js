@@ -16,3 +16,16 @@ export function signupMember({ nickname, role }) {
     body: { nickname, role },
   });
 }
+
+/**
+ * 로그인
+ * POST /api/v1/members/login
+ * @param {{ nickname: string }} params
+ * @returns {Promise<{ memberId: number, nickname: string, role: string }>}
+ */
+export function loginMember({ nickname }) {
+  return apiRequest("/members/login", {
+    method: "POST",
+    body: { nickname },
+  });
+}

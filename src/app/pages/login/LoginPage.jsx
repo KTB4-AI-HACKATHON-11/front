@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import BrandMark from "../../components/BrandMark";
 import LoginPreview from "./components/LoginPreview";
 import { ApiError } from "../../api/client";
+import { loginMember } from "../../api/memberApi";
 import "./LoginPage.css";
 
 export default function LoginPage({ onLogin }) {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -18,24 +18,22 @@ export default function LoginPage({ onLogin }) {
     if (isSubmitting) return;
 
     const formData = new FormData(event.currentTarget);
-    const email = (formData.get("email") ?? "").toString().trim();
-    const password = (formData.get("password") ?? "").toString();
+    const nickname = (formData.get("nickname") ?? "").toString().trim();
 
-    if (!email || !password) {
-      setErrorMessage("이메일과 비밀번호를 모두 입력해주세요.");
+    if (!nickname) {
+      setErrorMessage("닉네임을 입력해주세요.");
       return;
     }
 
     setErrorMessage("");
     setIsSubmitting(true);
     try {
-      // TODO: 로그인 API 연동 (백엔드 로그인 엔드포인트 확정 후 memberApi.js에 loginMember 추가하여 교체)
-      // const member = await loginMember({ email, password });
-      const member = { nickname: "민준", email };
+      const member = await loginMember({ nickname });
 
       onLogin({
+        memberId: member.memberId,
         nickname: member.nickname,
-        email: member.email,
+        role: member.role,
       });
       navigate("/groups");
     } catch (error) {
@@ -73,37 +71,17 @@ export default function LoginPage({ onLogin }) {
 
           <form onSubmit={handleLogin}>
             <div className="auth-field">
-              <label className="field-label" htmlFor="login-email">이메일</label>
+              <label className="field-label" htmlFor="login-nickname">닉네임</label>
               <input
                 className="text-input"
-                id="login-email"
-                name="email"
-                type="email"
-                placeholder="you@checkon.team"
-                autoComplete="email"
+                id="login-nickname"
+                name="nickname"
+                placeholder="지아나"
+                autoComplete="username"
+                maxLength={30}
                 required
                 disabled={isSubmitting}
               />
-            </div>
-            <div className="auth-field">
-              <div className="auth-field__label-row">
-                <label className="field-label" htmlFor="login-password">비밀번호</label>
-              </div>
-              <div className="password-input">
-                <input
-                  className="text-input"
-                  id="login-password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="비밀번호를 입력해주세요"
-                  autoComplete="current-password"
-                  required
-                  disabled={isSubmitting}
-                />
-                <button type="button" title="비밀번호 표시" onClick={() => setShowPassword((current) => !current)}>
-                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                </button>
-              </div>
             </div>
 
             {errorMessage && (
