@@ -6,7 +6,6 @@ import StatusState from "../../components/StatusState";
 import { ApiError } from "../../api/client";
 import { getTaskDetail, submitPhotoAttempt } from "../../api/taskApi";
 import { groups } from "../../data/mockData";
-import { isSameLocalDate, readJpegCapturedAt } from "../../lib/exifDate";
 import { toSubTask } from "../../lib/taskDisplay";
 import CameraFrame from "./components/CameraFrame";
 import FailureResult from "./components/FailureResult";
@@ -19,7 +18,6 @@ import "./PhotoVerificationPage.css";
 const MANAGER_REVIEW_FAIL_THRESHOLD = 3;
 // TODO: 개발 단계에서는 업로드 사진의 EXIF 촬영일 검증을 잠시 꺼둡니다. exifDate.js 구현/테스트는
 // 끝났으니, 실제 배포 전에는 이 값을 true로 되돌려 다시 켜야 합니다.
-const ENABLE_UPLOAD_DATE_CHECK = false;
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -33,7 +31,6 @@ export default function PhotoVerificationPage({ user }) {
   const [captured, setCaptured] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null); // { file, previewUrl }
   const [uploadError, setUploadError] = useState("");
-  const [isCheckingUpload, setIsCheckingUpload] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
   const [verificationResult, setVerificationResult] = useState(null); // { success, status, reason, fix }
@@ -115,10 +112,7 @@ export default function PhotoVerificationPage({ user }) {
     setCaptured(true);
   };
 
-  // 갤러리에서 불러온 사진입니다. 예전에 찍어둔 사진을 제출하는 것을 막기 위해 EXIF 촬영 시각이
-  // 오늘 날짜인지 확인한 뒤에만 사용합니다. EXIF를 읽을 수 없는 파일(HEIC 등)은 안전하게 거부합니다.
-  // TODO: ENABLE_UPLOAD_DATE_CHECK가 개발 단계라 꺼져 있어 지금은 이 검증을 건너뜁니다.
-  const handleUpload = async (file) => {
+  const handleUpload = (file) => {
     setUploadError("");
     if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
       setUploadError("JPEG, PNG, WebP 형식의 사진만 업로드할 수 있어요.");
@@ -128,25 +122,7 @@ export default function PhotoVerificationPage({ user }) {
       setUploadError("사진 파일은 10MB 이하만 업로드할 수 있어요.");
       return;
     }
-    setIsCheckingUpload(true);
-    try {
-      if (ENABLE_UPLOAD_DATE_CHECK) {
-        const takenAt = await readJpegCapturedAt(file);
-        if (!isMountedRef.current) return; // 확인 중 다른 화면으로 이동한 경우 상태 갱신을 건너뜁니다.
-
-        if (!takenAt) {
-          setUploadError("사진 촬영 시각을 확인할 수 없어요. 카메라로 바로 촬영해주세요.");
-          return;
-        }
-        if (!isSameLocalDate(takenAt, new Date())) {
-          setUploadError("오늘 촬영한 사진만 업로드할 수 있어요.");
-          return;
-        }
-      }
-      setCapturedFile(file);
-    } finally {
-      if (isMountedRef.current) setIsCheckingUpload(false);
-    }
+    setCapturedFile(file);
   };
 
   const handleRetake = () => {
@@ -167,9 +143,13 @@ export default function PhotoVerificationPage({ user }) {
     }
 
     setVerifying(true);
-    setVerifyProgress(50);
+    setVerifyProgress(0);
     setVerificationResult(null);
     setUploadError("");
+    clearInterval(progressIntervalRef.current);
+    progressIntervalRef.current = window.setInterval(() => {
+      setVerifyProgress((current) => Math.min(current + 5, 95));
+    }, 120);
     try {
       const result = await submitPhotoAttempt({
         assignmentId: subTask.assignmentId,
@@ -178,6 +158,7 @@ export default function PhotoVerificationPage({ user }) {
       });
       if (!isMountedRef.current) return;
 
+      clearInterval(progressIntervalRef.current);
       setVerifyProgress(100);
       setVerificationResult({
         ...result,
@@ -185,6 +166,7 @@ export default function PhotoVerificationPage({ user }) {
       });
       if (result?.status === "RETAKE") setFailCount((current) => Math.max(current + 1, result.attemptNumber ?? 0));
     } catch (error) {
+      clearInterval(progressIntervalRef.current);
       if (isMountedRef.current) {
         setUploadError(error instanceof ApiError ? error.message : "사진 검증에 실패했습니다. 잠시 후 다시 시도해주세요.");
       }
@@ -310,12 +292,10 @@ export default function PhotoVerificationPage({ user }) {
               <CameraFrame
                 captured={captured}
                 previewUrl={capturedImage?.previewUrl}
-                disabled={isCheckingUpload}
                 hint="검증 기준에 맞는 사진을 업로드해주세요."
                 onUpload={handleUpload}
                 onRetake={handleRetake}
               />
-              {isCheckingUpload && <p className="photo-camera-card__notice">불러온 사진의 촬영 시각을 확인하고 있어요...</p>}
               {uploadError && <p className="photo-camera-card__error" role="alert">{uploadError}</p>}
             </>
           )}
@@ -330,7 +310,7 @@ export default function PhotoVerificationPage({ user }) {
                 <img src={subTask.referencePhotoUrl} alt="기준 사진" />
               </div>
             )}
-            <button className="primary-button" disabled={!captured || isCheckingUpload} onClick={() => handleVerify(subTask)}>
+            <button className="primary-button" disabled={!captured} onClick={() => handleVerify(subTask)}>
               <ShieldCheck size={15} /> 사진으로 검증하기
             </button>
             <button className="ghost-button" onClick={() => navigate(`/tasks/${taskId}`, { state: { groupId: currentGroupId } })}>나중에 검증하기</button>

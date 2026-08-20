@@ -35,7 +35,8 @@ export function toTaskCard(task) {
 export function toSubTask(item, taskAssignmentId) {
   return {
     id: String(item.checklistId),
-    assignmentId: item.assignmentId ?? item.assignment?.assignmentId ?? item.assignment?.id ?? item.taskAssignmentId ?? item.taskAssignment?.id ?? taskAssignmentId,
+    // 현재 백엔드는 checklistId에 task_assignments.id를 내려주므로 PHOTO 인증의 assignmentId로 사용합니다.
+    assignmentId: item.assignmentId ?? item.assignment?.assignmentId ?? item.assignment?.id ?? item.taskAssignmentId ?? item.taskAssignment?.id ?? taskAssignmentId ?? item.checklistId,
     title: item.title,
     instruction: item.instruction,
     completed: Boolean(item.performed),
