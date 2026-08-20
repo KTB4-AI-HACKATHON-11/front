@@ -1,4 +1,4 @@
-import { CalendarDays, Check, Copy, ListFilter, Plus, Search, Users } from "lucide-react";
+import { CalendarDays, Check, Copy, Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import AppShell from "../../components/AppShell";
@@ -66,16 +66,6 @@ export default function GroupDetailPage({ user }) {
         <section className="task-panel page-card">
           <div className="task-panel__heading">
             <div><h2>태스크 목록</h2><span>총 {tasks.length}개</span></div>
-            <div className="task-panel__tools">
-              <label><Search size={14} /><input placeholder="태스크 검색" /></label>
-              <button className="icon-button icon-button--bordered" title="필터"><ListFilter size={16} /></button>
-            </div>
-          </div>
-          <div className="task-filter-tabs">
-            <button className="is-active">전체 <span>3</span></button>
-            <button>진행 중 <span>1</span></button>
-            <button>대기 <span>1</span></button>
-            <button>완료 <span>1</span></button>
           </div>
           <div className="task-list">
             {tasks.map((task) => <TaskCard key={task.id} task={task} onOpen={() => navigate(`/tasks/${task.id}`)} />)}
