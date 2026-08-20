@@ -7,6 +7,7 @@ import { ApiError } from "../../api/client";
 import { createGroup } from "../../api/groupApi";
 import "./GroupCreatePage.css";
 
+const GROUP_NAME_MAX_LENGTH = 50;
 const GROUP_DESCRIPTION_MAX_LENGTH = 200;
 
 export default function GroupCreatePage({ user }) {
@@ -57,12 +58,14 @@ export default function GroupCreatePage({ user }) {
                 className="text-input"
                 id="group-name"
                 placeholder="예: 성수 플래그십 스토어"
+                maxLength={GROUP_NAME_MAX_LENGTH}
                 required
                 value={groupName}
                 onChange={(event) => setGroupName(event.target.value)}
                 disabled={isSubmitting}
               />
               <p className="field-hint">팀, 매장, 프로젝트처럼 업무가 진행되는 단위를 입력하세요.</p>
+              <div className="character-count">{groupName.length} / {GROUP_NAME_MAX_LENGTH}</div>
             </div>
             <div className="group-create-field">
               <label className="field-label" htmlFor="group-description">그룹 설명</label>
