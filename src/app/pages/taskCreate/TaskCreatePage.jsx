@@ -6,6 +6,32 @@ import { ApiError } from "../../api/client";
 import { generateTaskChecklist } from "../../api/taskApi";
 import "./TaskCreatePage.css";
 
+const TASK_TITLE_MAX_LENGTH = 200;
+const TASK_MESSAGE_MAX_LENGTH = 1000;
+
+function validateTaskCreateForm({ title, message }) {
+  const trimmedTitle = title.trim();
+  const trimmedMessage = message.trim();
+
+  if (!trimmedTitle) {
+    return "태스크 제목을 입력해주세요.";
+  }
+
+  if (trimmedTitle.length > TASK_TITLE_MAX_LENGTH) {
+    return `태스크 제목은 ${TASK_TITLE_MAX_LENGTH}자 이하로 입력해주세요.`;
+  }
+
+  if (!trimmedMessage) {
+    return "업무 요구사항을 입력해주세요.";
+  }
+
+  if (trimmedMessage.length > TASK_MESSAGE_MAX_LENGTH) {
+    return `업무 요구사항은 ${TASK_MESSAGE_MAX_LENGTH}자 이하로 입력해주세요.`;
+  }
+
+  return "";
+}
+
 export default function TaskCreatePage({ user }) {
   const { groupId } = useParams();
   const [title, setTitle] = useState("오픈 전 매장 점검");
@@ -19,6 +45,12 @@ export default function TaskCreatePage({ user }) {
   const handleGenerate = async (event) => {
     event.preventDefault();
     if (isGenerating) return;
+
+    const nextErrorMessage = validateTaskCreateForm({ title, message });
+    if (nextErrorMessage) {
+      setErrorMessage(nextErrorMessage);
+      return;
+    }
 
     setErrorMessage("");
     setIsGenerating(true);
@@ -98,9 +130,14 @@ export default function TaskCreatePage({ user }) {
                   id="task-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
+                  maxLength={TASK_TITLE_MAX_LENGTH}
                   required
                   disabled={isGenerating}
                 />
+                <div className="task-create-field__meta">
+                  <span>간결하게 핵심만 입력해주세요.</span>
+                  <strong>{title.length}/{TASK_TITLE_MAX_LENGTH}</strong>
+                </div>
               </div>
               <div className="task-create-field">
                 <label className="field-label" htmlFor="task-prompt">업무 요구사항<span className="field-label__required">*</span></label>
@@ -110,10 +147,15 @@ export default function TaskCreatePage({ user }) {
                     id="task-prompt"
                     value={message}
                     onChange={(event) => setMessage(event.target.value)}
+                    maxLength={TASK_MESSAGE_MAX_LENGTH}
                     required
                     disabled={isGenerating}
                   />
                   <span><Sparkles size={12} /> AI가 실행 가능한 목록으로 나눠요</span>
+                </div>
+                <div className="task-create-field__meta">
+                  <span>최대 {TASK_MESSAGE_MAX_LENGTH}자까지 입력할 수 있습니다.</span>
+                  <strong>{message.length}/{TASK_MESSAGE_MAX_LENGTH}</strong>
                 </div>
               </div>
             </section>

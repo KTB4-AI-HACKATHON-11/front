@@ -12,6 +12,22 @@ const fallbackItems = [
   "메인 테이블 상품 진열 상태 확인",
   "오픈 준비가 끝난 매장 전경 촬영",
 ];
+const VERIFICATION_RULE_MAX_LENGTH = 300;
+const MAX_DUE_DATE = "2035-12-31T23:59";
+
+function isInvalidDueDate(value) {
+  if (!value) return true;
+
+  const selectedDate = new Date(value);
+  const now = new Date();
+  const maxDate = new Date(MAX_DUE_DATE);
+
+  if (Number.isNaN(selectedDate.getTime())) {
+    return true;
+  }
+
+  return selectedDate < now || selectedDate > maxDate;
+}
 
 export default function TaskVerificationPage({ user }) {
   const navigate = useNavigate();
@@ -33,6 +49,28 @@ export default function TaskVerificationPage({ user }) {
 
   const handleSave = (event) => {
     event.preventDefault();
+
+    if (!assignee) {
+      return;
+    }
+
+    if (isInvalidDueDate(dueDate)) {
+      window.alert("마감 일시는 현재 시각 이후부터 2035년 12월 31일까지 설정해주세요.");
+      return;
+    }
+
+    const hasInvalidRule = items.some((item) => enabled[item] && !rules[item].trim());
+    if (hasInvalidRule) {
+      window.alert("검증을 사용하는 항목은 검증 기준을 입력해주세요.");
+      return;
+    }
+
+    const hasRuleTooLong = items.some((item) => enabled[item] && rules[item].trim().length > VERIFICATION_RULE_MAX_LENGTH);
+    if (hasRuleTooLong) {
+      window.alert(`검증 기준은 ${VERIFICATION_RULE_MAX_LENGTH}자 이하로 입력해주세요.`);
+      return;
+    }
+
     // TODO: 담당 워커, 마감일시, TASK_ID, SUB_TASK_ID별 검증 설정을 서버에 저장해야 합니다.
     navigate("/tasks/task-101");
   };
@@ -57,7 +95,16 @@ export default function TaskVerificationPage({ user }) {
             </div>
             <div className="task-verification-assignment__field">
               <label className="field-label" htmlFor="task-due-date">마감일시<span className="field-label__required">*</span></label>
-              <input className="text-input" id="task-due-date" type="datetime-local" value={dueDate} onChange={(event) => setDueDate(event.target.value)} required />
+              <input
+                className="text-input"
+                id="task-due-date"
+                type="datetime-local"
+                value={dueDate}
+                min={new Date().toISOString().slice(0, 16)}
+                max={MAX_DUE_DATE}
+                onChange={(event) => setDueDate(event.target.value)}
+                required
+              />
             </div>
           </div>
 
@@ -89,8 +136,10 @@ export default function TaskVerificationPage({ user }) {
                       value={rules[item]}
                       onChange={(event) => updateRule(item, event.target.value)}
                       placeholder="예: 입구 유리문에 얼룩이 없어야 합니다."
+                      maxLength={VERIFICATION_RULE_MAX_LENGTH}
                       required
                     />
+                    <small>{rules[item].length}/{VERIFICATION_RULE_MAX_LENGTH}</small>
                   </div>
                 ) : (
                   <div className="task-verification-item__disabled"><ShieldOff size={16} /><span>검증 없음</span></div>
