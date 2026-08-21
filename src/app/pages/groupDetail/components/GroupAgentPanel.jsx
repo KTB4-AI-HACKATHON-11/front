@@ -73,8 +73,8 @@ function formatTime(value) {
   }).format(new Date(value));
 }
 
-function userFacingAssistantMessage(value = "") {
-  return value
+function userFacingAssistantMessage(value) {
+  return String(value ?? "")
     .split(/\r?\n/)
     .filter((line) => !line.trimStart().startsWith(INTERNAL_CONTEXT_PREFIX))
     .join("\n")
