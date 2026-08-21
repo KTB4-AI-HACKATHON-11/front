@@ -25,6 +25,12 @@ import "./NotificationOnboarding.css";
 
 const AUTH_PATHS = new Set(["/", "/login", "/signup"]);
 
+function subscriptionErrorMessage(error) {
+  return error instanceof ApiError
+    ? error.message
+    : "알림을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+}
+
 function deviceState() {
   return {
     ios: isIosDevice(),
@@ -86,6 +92,11 @@ export default function NotificationOnboarding({ user, trigger }) {
   const [isInstalling, setIsInstalling] = useState(false);
   const [installOutcome, setInstallOutcome] = useState("");
   const dialogRef = useRef(null);
+  const currentMemberIdRef = useRef(user?.memberId);
+  const isOpenRef = useRef(isOpen);
+
+  currentMemberIdRef.current = user?.memberId;
+  isOpenRef.current = isOpen;
 
   const requiresIosInstall = environment.ios && environment.mobile && !environment.standalone;
   const canRequestNotifications = environment.pushSupported && !requiresIosInstall && permission !== "denied";
@@ -107,8 +118,28 @@ export default function NotificationOnboarding({ user, trigger }) {
 
   useEffect(() => {
     if (!pendingOpen || !user?.memberId || AUTH_PATHS.has(location.pathname)) return;
-    setIsOpen(true);
+    const currentPermission = getPushPermission();
+    const memberId = user.memberId;
+    setEnvironment(deviceState());
+    setPermission(currentPermission);
     setPendingOpen(false);
+
+    if (currentPermission !== "granted") {
+      setIsOpen(true);
+      return;
+    }
+
+    ensurePushSubscription()
+      .then(() => {
+        if (currentMemberIdRef.current !== memberId) return;
+        window.dispatchEvent(new CustomEvent("checkon:notification-state-changed"));
+      })
+      .catch((error) => {
+        if (currentMemberIdRef.current !== memberId) return;
+        setStatus("error");
+        setMessage(subscriptionErrorMessage(error));
+        setIsOpen(true);
+      });
   }, [location.pathname, pendingOpen, user?.memberId]);
 
   useEffect(() => {
@@ -131,22 +162,21 @@ export default function NotificationOnboarding({ user, trigger }) {
 
   useEffect(() => {
     if (!isOpen || permission !== "granted" || status !== "idle") return;
-    let cancelled = false;
+    const memberId = user?.memberId;
     setStatus("subscribing");
     ensurePushSubscription()
       .then(() => {
-        if (cancelled) return;
+        if (!isOpenRef.current || currentMemberIdRef.current !== memberId) return;
         setStatus("success");
         setMessage(`${user.nickname}님, 이 기기로 업무 알림을 받을 준비가 됐어요.`);
         window.dispatchEvent(new CustomEvent("checkon:notification-state-changed"));
       })
       .catch((error) => {
-        if (cancelled) return;
+        if (!isOpenRef.current || currentMemberIdRef.current !== memberId) return;
         setStatus("error");
-        setMessage(error instanceof ApiError ? error.message : "알림 구독을 확인하지 못했습니다.");
+        setMessage(subscriptionErrorMessage(error));
       });
-    return () => { cancelled = true; };
-  }, [isOpen, permission, status, user?.nickname]);
+  }, [isOpen, permission]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -184,7 +214,7 @@ export default function NotificationOnboarding({ user, trigger }) {
     } catch (error) {
       setPermission(getPushPermission());
       setStatus("error");
-      setMessage(error instanceof ApiError ? error.message : "알림을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      setMessage(subscriptionErrorMessage(error));
     }
   };
 
